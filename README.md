@@ -1,7 +1,7 @@
 # HashiCorp `vagrant` demo of **`vault`** DR-Primary & DR-Secondary.
 
 ~~It is not clear currently (1.9.0) how to raft list-peers on a DR-Secondary after it's setup.~~
-Must use CLI parameter `-dr-token=...` instead of VAULT_TOKEN or on API the request body must contain `{"dr_operation_token":"..."}` as demonstrated below.
+Must use [CLI parameter **`-dr-token=...`**](https://www.vaultproject.io/docs/commands/operator/generate-root#dr-token) instead of VAULT_TOKEN or on API the request body must [contain **`{"dr_operation_token":"..."}`** as demonstrated](https://www.vaultproject.io/api-docs/system/storage/raft#remove-a-node-from-raft-cluster).
 
 **NOTE:**: Place license in `vault_license.txt` for each respective cluster.
 

@@ -3,8 +3,8 @@
 # // To list interfaces on CLI typically:
 # //	macOS: networksetup -listallhardwareports ;
 # //	Linux: lshw -class network ;
-#sNET='en0: Wi-Fi (Wireless)'  # // network adaptor to use for bridged mode
-sNET='en7: USB 10/100/1000 LAN'  # // network adaptor to use for bridged mode
+sNET='en0: Wi-Fi'  # // network adaptor to use for bridged mode
+#sNET='en6: USB 10/100/1000 LAN'  # // network adaptor to use for bridged mode
 
 sVUSER='vagrant'  # // vagrant user
 sHOME="/home/#{sVUSER}"  # // home path for vagrant user
@@ -43,9 +43,9 @@ aCLUSTERB_FILES =  # // Cluster B files to copy to instances
 	"vault_files_dr-secondary/."
 ];
 
-VV1='VAULT_VERSION='+'1.9.0+ent.hsm'  # VV1='' to Install Latest OSS
+VV1='VAULT_VERSION='+'1.7.10+ent.hsm'  # VV1='' to Install Latest OSS
 VR1="VAULT_RAFT_JOIN=https://#{sCLUSTERA_sIP_VAULT_LEADER}:8200"  # raft join script determines applicability
-VV2='VAULT_VERSION='+'1.9.0+ent.hsm'  # VV1='' to Install Latest OSS
+VV2='VAULT_VERSION='+'1.7.10+ent.hsm'  # VV1='' to Install Latest OSS
 VR2="VAULT_RAFT_JOIN=https://#{sCLUSTERB_sIP_VAULT_LEADER}:8200"  # raft join script determines applicability
 
 sERROR_MSG_CONSUL="CONSUL Node count can NOT be zero (0). Set to: 3, 5, 7 , 11, etc."
