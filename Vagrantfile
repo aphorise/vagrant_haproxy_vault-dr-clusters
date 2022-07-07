@@ -11,8 +11,8 @@ iCLUSTERA_C = 0  # // Consul B INSTANCES UP TO 9 <= iN > 2
 iCLUSTERB_C = 0  # // Consul B INSTANCES UP TO 9 <= iN > 2
 bCLUSTERA_CONSUL = false  # // Consul A use Consul as store for vault?
 bCLUSTERB_CONSUL = false  # // Consul B use Consul as store for vault?
-bCLUSTERA_LB = false  # true  # // Cluster A with HAPROXY?
-bCLUSTERB_LB = false  # // Cluster B with HAPROXY?
+bCLUSTERA_LB = true  # true  # // Cluster A with HAPROXY?
+bCLUSTERB_LB = true  # // Cluster B with HAPROXY?
 
 sCLUSTERA_IP_CLASS_D='192.168.178'  # // Consul A NETWORK CIDR forconfigs.
 sCLUSTERB_IP_CLASS_D='192.168.178'  # // Consul B NETWORK CIDR for configs.
@@ -308,6 +308,8 @@ SCRIPT
 ssh-keyscan #{sCLUSTERB_IP_CA_NODE} 2>/dev/null >> #{sHOME}/.ssh/known_hosts ;
 ssh-keyscan #{sCLUSTERA_IP_CA_NODE} 2>/dev/null >> #{sHOME}/.ssh/known_hosts ;
 chown #{sVUSER}:#{sVUSER} -R #{sHOME}/.ssh ;
+chmod 600 #{sHOME}/.ssh/id_rsa1
+chmod 600 #{sHOME}/.ssh/id_rsa2
 su -l #{sVUSER} -c \"rsync -qva --rsh='ssh -i #{sHOME}/.ssh/id_rsa1' #{sVUSER}@#{sCLUSTERB_IP_CA_NODE}:~/vault#{iX}* :~/#{sCA_CERT} :~/cacert2.crt #{sHOME}/.\"
 su -l #{sVUSER} -c \"rsync -qva --rsh='ssh -i #{sHOME}/.ssh/id_rsa2' #{sVUSER}@#{sCLUSTERA_IP_CA_NODE}:~/vault_init.json #{sHOME}/.\"
 SCRIPT
@@ -318,6 +320,7 @@ SCRIPT
 ssh-keyscan #{sCLUSTERB_IP_CA_NODE} 2>/dev/null >> #{sHOME}/.ssh/known_hosts ;
 ssh-keyscan #{sCLUSTERA_IP_CA_NODE} 2>/dev/null >> #{sHOME}/.ssh/known_hosts ;
 chown #{sVUSER}:#{sVUSER} -R #{sHOME}/.ssh ;
+chmod 600 #{sHOME}/.ssh/id_rsa1
 su -l #{sVUSER} -c \"rsync -qva --rsh='ssh -i #{sHOME}/.ssh/id_rsa1' #{sVUSER}@#{sCLUSTERA_IP_CA_NODE}:~/*token_dr*.json #{sHOME}/.\"
 su -l #{sVUSER} -c \"rsync -qva --rsh='ssh -i #{sHOME}/.ssh/id_rsa1' #{sVUSER}@#{sCLUSTERA_IP_CA_NODE}:~/#{sCA_CERT} #{sHOME}/cacert2.crt\"
 su -l #{sVUSER} -c \"rsync -qva --rsh='ssh -i #{sHOME}/.ssh/id_rsa1' #{sVUSER}@#{sCLUSTERA_IP_CA_NODE}:~/vault_init.json #{sHOME}/.\"
@@ -336,6 +339,9 @@ ssh-keyscan #{sCLUSTERA_sIP} 2>/dev/null >> #{sHOME}/.ssh/known_hosts ;
 ssh-keyscan #{sCLUSTERB_sIP} 2>/dev/null >> #{sHOME}/.ssh/known_hosts ;
 ssh-keyscan #{sCLUSTERA_sIP_VAULT_LEADER} 2>/dev/null >> #{sHOME}/.ssh/known_hosts ;
 chown #{sVUSER}:#{sVUSER} -R #{sHOME}/.ssh ;
+chmod 600 #{sHOME}/.ssh/id_rsa1
+chmod 600 #{sHOME}/.ssh/id_rsa2
+chmod 600 #{sHOME}/.ssh/id_rsa3
 su -l #{sVUSER} -c \"rsync -qva --rsh='ssh -i #{sHOME}/.ssh/id_rsa1' #{sVUSER}@#{sCLUSTERA_sIP}:~/#{sCA_CERT} #{sHOME}/cacert2.crt\"
 su -l #{sVUSER} -c \"rsync -qva --rsh='ssh -i #{sHOME}/.ssh/id_rsa2' #{sVUSER}@#{sCLUSTERB_sIP}:~/vault#{iX}* :~/#{sCA_CERT} #{sHOME}/.\"
 su -l #{sVUSER} -c \"rsync -qva --rsh='ssh -i #{sHOME}/.ssh/id_rsa3' #{sVUSER}@#{sCLUSTERA_sIP_VAULT_LEADER}:~/*token_dr*.json #{sHOME}/.\"
