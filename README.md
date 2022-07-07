@@ -4,6 +4,9 @@ This repo is a mock example of two Vault clusters which are serviced by their re
 
 It's possible to use [Vault HSM Enterprise](https://www.vaultproject.io/docs/enterprise/hsm) with [SoftHSM](https://www.opendnssec.org/softhsm/) as an [auto-unseal type is possible](https://www.vaultproject.io/docs/configuration/seal/pkcs11) as detailed below.
 
+:memo: Tested on **X86 / AMD64** hosts with Windows (10 & 11) & Linux (Debian 11 & macOS 12.4) using VirtualBox 6.1.34 r150636 + Vagrant 2.2.19. :memo:
+ 
+
 ## Makeup & Concept
 
 Two sets of Vault clusters are deployed which are labelled as `dr1primary` & `dr2secondary` each with a HAProxy (Layer7) reverse proxy managing request from end-users or another Vault clusters. The address of the LB in each cluster is the configured as HCL High Availability parameters `` & `` for all the nodes in each cluster

@@ -5,14 +5,14 @@
 # //	Linux: lshw -class network ;
 sNET='en6: USB 10/100/1000 LAN'  # // network adaptor to use for bridged mode
 
-iCLUSTERA_N = 2  # // Vault A INSTANCES UP TO 9 <= iN > 0
-iCLUSTERB_N = 2  # // Vault B INSTANCES UP TO 9 <= iN > 0
+iCLUSTERA_N = 1  # // Vault A INSTANCES UP TO 9 <= iN > 0
+iCLUSTERB_N = 1  # // Vault B INSTANCES UP TO 9 <= iN > 0
 iCLUSTERA_C = 0  # // Consul B INSTANCES UP TO 9 <= iN > 2
 iCLUSTERB_C = 0  # // Consul B INSTANCES UP TO 9 <= iN > 2
 bCLUSTERA_CONSUL = false  # // Consul A use Consul as store for vault?
 bCLUSTERB_CONSUL = false  # // Consul B use Consul as store for vault?
-bCLUSTERA_LB = true  # true  # // Cluster A with HAPROXY?
-bCLUSTERB_LB = true  # // Cluster B with HAPROXY?
+bCLUSTERA_LB = false  # true  # // Cluster A with HAPROXY?
+bCLUSTERB_LB = false  # // Cluster B with HAPROXY?
 
 sCLUSTERA_IP_CLASS_D='192.168.178'  # // Consul A NETWORK CIDR forconfigs.
 sCLUSTERB_IP_CLASS_D='192.168.178'  # // Consul B NETWORK CIDR for configs.
@@ -96,7 +96,7 @@ VHOSTNAME=#{CLUSTERA_HOSTNAME_PREFIX}vault VIP_C=#{sCLUSTERA_IP_CLASS_D}. VIP_D=
 # // allow for SSHD on all interfaces
 sed -i "s/#ListenAddress/ListenAddress/g" /etc/ssh/sshd_config ;
 SCRIPT
-	    end
+		end
 	end
 
 	# // Consul Server Nodes
@@ -139,7 +139,12 @@ SCRIPT
 			end
 
 			vault_node.vm.provision "file", source: "#{sPTH}/vault/3.install_hsm.sh", destination: "#{sHOME}/install_hsm.sh"
-			vault_node.vm.provision "shell", inline: "/bin/bash -c '#{sHOME}/install_hsm.sh #{iCLUSTERA_N}'"
+			$script = <<-SCRIPT
+chmod +x #{sHOME}/install_hsm.sh
+/bin/bash -c '#{sHOME}/install_hsm.sh'
+SCRIPT
+			vault_node.vm.provision "shell", inline: $script
+
 
 			if ! bCLUSTERA_LB then
 				# // ORDERED: Copy certs & ssh private keys before setup from vault1 / CA source generating.
@@ -171,7 +176,11 @@ SCRIPT
 
 			# // ORDERED: setup certs.
 			vault_node.vm.provision "file", source: "#{sPTH}/2.install_tls_ca_certs.sh", destination: "#{sHOME}/install_tls_ca_certs.sh"			
-			vault_node.vm.provision "shell", inline: "/bin/bash -c 'IP_VAULT1=#{sCLUSTERA_IP_CLASS_D}.#{iCLUSTERA_IP_VAULT_CLASS_D-iX} FQDN_VAULT1=#{CLUSTERA_HOSTNAME_PREFIX}vault1 #{sHOME}/install_tls_ca_certs.sh #{ bCLUSTERA_LB == false && iX == 1 ? iCLUSTERA_N : '' }'"
+			$script = <<-SCRIPT
+chmod +x #{sHOME}/install_tls_ca_certs.sh
+/bin/bash -c 'IP_VAULT1=#{sCLUSTERA_IP_CLASS_D}.#{iCLUSTERA_IP_VAULT_CLASS_D-iX} FQDN_VAULT1=#{CLUSTERA_HOSTNAME_PREFIX}vault1 #{sHOME}/install_tls_ca_certs.sh #{ bCLUSTERA_LB == false && iX == 1 ? iCLUSTERA_N : '' }'
+SCRIPT
+			vault_node.vm.provision "shell", inline: $script
 
 			# // where additional Vault related files exist copy them across (eg License & seal configuration)
 			for sFILE in aCLUSTERA_FILES
@@ -186,17 +195,33 @@ SCRIPT
 				vault_node.vm.provision "file", source: "#{sPTH}/vault/5.install_vault.sh", destination: "#{sHOME}/install_vault.sh"
 				if iX == 1 then
 					vault_node.vm.provision "file", source: "#{sPTH}/vault/6.post_setup_vault_leader_dr_enable.sh", destination: "#{sHOME}/post_setup_vault.sh"
-					vault_node.vm.provision "shell", inline: "/bin/bash -c '#{VV1} VAULT_API_ADDR='https://#{sCLUSTERA_sIP}' VAULT_CLU_ADDR='https://#{sCLUSTERA_sIP}:8201' VAULT_CLUSTER_NAME='#{CLUSTERA_VAULT_NAME}' USER='#{sVUSER}' #{sHOME}/install_vault.sh'"
+					$script = <<-SCRIPT
+chmod +x #{sHOME}/install_vault.sh
+/bin/bash -c '#{VV1} VAULT_API_ADDR='https://#{sCLUSTERA_sIP}' VAULT_CLU_ADDR='https://#{sCLUSTERA_sIP}:8201' VAULT_CLUSTER_NAME='#{CLUSTERA_VAULT_NAME}' USER='#{sVUSER}' #{sHOME}/install_vault.sh'
+SCRIPT
+					vault_node.vm.provision "shell", inline: $script
 				else
-					vault_node.vm.provision "shell", inline: "/bin/bash -c '#{VV1} #{VR1} VAULT_API_ADDR='https://#{sCLUSTERA_sIP}' VAULT_CLUSTER_NAME='#{CLUSTERA_VAULT_NAME}' USER='#{sVUSER}' #{sHOME}/install_vault.sh'"
+					$script = <<-SCRIPT
+chmod +x #{sHOME}/install_vault.sh
+/bin/bash -c '#{VV1} #{VR1} VAULT_API_ADDR='https://#{sCLUSTERA_sIP}' VAULT_CLUSTER_NAME='#{CLUSTERA_VAULT_NAME}' USER='#{sVUSER}' #{sHOME}/install_vault.sh'
+SCRIPT
+					vault_node.vm.provision "shell", inline: $script
 				end
 			else
 				vault_node.vm.provision "file", source: "#{sPTH}/vault/5.install_vault.sh", destination: "#{sHOME}/install_vault.sh"
 				if iX == 1 then
 					vault_node.vm.provision "file", source: "#{sPTH}/vault/6.post_setup_vault_leader_dr_enable.sh", destination: "#{sHOME}/post_setup_vault.sh"
-					vault_node.vm.provision "shell", inline: "/bin/bash -c '#{VV1} VAULT_CLUSTER_NAME='#{CLUSTERA_VAULT_NAME}' USER='#{sVUSER}' #{sHOME}/install_vault.sh'"
+					$script = <<-SCRIPT
+chmod +x #{sHOME}/install_vault.sh
+/bin/bash -c '#{VV1} VAULT_CLUSTER_NAME='#{CLUSTERA_VAULT_NAME}' USER='#{sVUSER}' #{sHOME}/install_vault.sh'
+SCRIPT
+					vault_node.vm.provision "shell", inline: $script
 				else
-					vault_node.vm.provision "shell", inline: "/bin/bash -c '#{VV1} #{VR1} VAULT_CLUSTER_NAME='#{CLUSTERA_VAULT_NAME}' USER='#{sVUSER}' #{sHOME}/install_vault.sh'"
+					$script = <<-SCRIPT
+chmod +x #{sHOME}/install_vault.sh
+/bin/bash -c '#{VV1} #{VR1} VAULT_CLUSTER_NAME='#{CLUSTERA_VAULT_NAME}' USER='#{sVUSER}' #{sHOME}/install_vault.sh'
+SCRIPT
+					vault_node.vm.provision "shell", inline: $script
 				end
 			end
 
@@ -226,7 +251,7 @@ VHOSTNAME=#{CLUSTERB_HOSTNAME_PREFIX}vault VIP_C=#{sCLUSTERB_IP_CLASS_D}. VIP_D=
 # // allow for SSHD on all interfaces
 sed -i "s/#ListenAddress/ListenAddress/g" /etc/ssh/sshd_config ;
 SCRIPT
-	    end
+		end
 	end
 
 	# // Consul Server Nodes
@@ -268,7 +293,11 @@ SCRIPT
 			end
 
 			vault_node.vm.provision "file", source: "#{sPTH}/vault/3.install_hsm.sh", destination: "#{sHOME}/install_hsm.sh"
-			vault_node.vm.provision "shell", inline: "/bin/bash -c '#{sHOME}/install_hsm.sh #{iCLUSTERB_N}'"
+			$script = <<-SCRIPT
+chmod +x #{sHOME}/install_hsm.sh
+/bin/bash -c '#{sHOME}/install_hsm.sh'
+SCRIPT
+			vault_node.vm.provision "shell", inline: $script
 
 			if ! bCLUSTERB_LB then
 				# // ORDERED: Copy certs & ssh private keys before setup from vault1 / CA source generating.
@@ -327,7 +356,11 @@ SCRIPT
 
 			# // ORDERED: setup certs.
 			vault_node.vm.provision "file", source: "#{sPTH}/2.install_tls_ca_certs.sh", destination: "#{sHOME}/install_tls_ca_certs.sh"			
-			vault_node.vm.provision "shell", inline: "/bin/bash -c 'IP_VAULT1=#{sCLUSTERB_IP_CLASS_D}.#{iCLUSTERB_IP_VAULT_CLASS_D-iX} FQDN_VAULT1=#{CLUSTERB_HOSTNAME_PREFIX}vault1 #{sHOME}/install_tls_ca_certs.sh #{ bCLUSTERB_LB == false && iX == 1 ? iCLUSTERB_N : '' }'"
+			$script = <<-SCRIPT
+chmod +x #{sHOME}/install_tls_ca_certs.sh
+/bin/bash -c 'IP_VAULT1=#{sCLUSTERB_IP_CLASS_D}.#{iCLUSTERB_IP_VAULT_CLASS_D-iX} FQDN_VAULT1=#{CLUSTERB_HOSTNAME_PREFIX}vault1 #{sHOME}/install_tls_ca_certs.sh #{ bCLUSTERB_LB == false && iX == 1 ? iCLUSTERB_N : '' }'
+SCRIPT
+			vault_node.vm.provision "shell", inline: $script
 
 			# // where additional Vault related files exist copy them across (eg License & seal configuration)
 			for sFILE2 in aCLUSTERB_FILES
@@ -342,17 +375,34 @@ SCRIPT
 				vault_node.vm.provision "file", source: "#{sPTH}/vault/5.install_vault.sh", destination: "#{sHOME}/install_vault.sh"
 				if iX == 1 then
 					vault_node.vm.provision "file", source: "#{sPTH}/vault/7.post_setup_vault_dr_become_leader.sh", destination: "#{sHOME}/post_setup_vault.sh"
-					vault_node.vm.provision "shell", inline: "/bin/bash -c '#{VV2} VAULT_API_ADDR='https://#{sCLUSTERB_sIP}' VAULT_CLU_ADDR='https://#{sCLUSTERB_sIP}:8201' VAULT_CLUSTER_NAME='#{CLUSTERB_VAULT_NAME}' USER='#{sVUSER}' #{sHOME}/install_vault.sh'"
+					$script = <<-SCRIPT
+chmod +x #{sHOME}/install_vault.sh
+/bin/bash -c '#{VV2} VAULT_API_ADDR='https://#{sCLUSTERB_sIP}' VAULT_CLU_ADDR='https://#{sCLUSTERB_sIP}:8201' VAULT_CLUSTER_NAME='#{CLUSTERB_VAULT_NAME}' USER='#{sVUSER}' #{sHOME}/install_vault.sh'
+SCRIPT
+					vault_node.vm.provision "shell", inline: $script
 				else
-					vault_node.vm.provision "shell", inline: "/bin/bash -c '#{VV2} #{VR2} VAULT_API_ADDR='https://#{sCLUSTERB_sIP}' VAULT_CLUSTER_NAME='#{CLUSTERB_VAULT_NAME}' USER='#{sVUSER}' #{sHOME}/install_vault.sh'"
+					$script = <<-SCRIPT
+chmod +x #{sHOME}/install_vault.sh
+/bin/bash -c '#{VV2} #{VR2} VAULT_API_ADDR='https://#{sCLUSTERB_sIP}' VAULT_CLUSTER_NAME='#{CLUSTERB_VAULT_NAME}' USER='#{sVUSER}' #{sHOME}/install_vault.sh'
+SCRIPT
+					vault_node.vm.provision "shell", inline: $script
+
 				end
 			else
 				vault_node.vm.provision "file", source: "#{sPTH}/vault/5.install_vault.sh", destination: "#{sHOME}/install_vault.sh"
 				if iX == 1 then
 					vault_node.vm.provision "file", source: "#{sPTH}/vault/7.post_setup_vault_dr_become_leader.sh", destination: "#{sHOME}/post_setup_vault.sh"
-					vault_node.vm.provision "shell", inline: "/bin/bash -c '#{VV2} VAULT_CLUSTER_NAME='#{CLUSTERB_VAULT_NAME}' USER='#{sVUSER}' #{sHOME}/install_vault.sh'"
+					$script = <<-SCRIPT
+chmod +x #{sHOME}/install_vault.sh
+/bin/bash -c '#{VV2} VAULT_CLUSTER_NAME='#{CLUSTERB_VAULT_NAME}' USER='#{sVUSER}' #{sHOME}/install_vault.sh'
+SCRIPT
+					vault_node.vm.provision "shell", inline: $script
 				else
-					vault_node.vm.provision "shell", inline: "/bin/bash -c '#{VV2} #{VR2} VAULT_CLUSTER_NAME='#{CLUSTERB_VAULT_NAME}' USER='#{sVUSER}' #{sHOME}/install_vault.sh'"
+					$script = <<-SCRIPT
+chmod +x #{sHOME}/install_vault.sh
+/bin/bash -c '#{VV2} #{VR2} VAULT_CLUSTER_NAME='#{CLUSTERB_VAULT_NAME}' USER='#{sVUSER}' #{sHOME}/install_vault.sh'
+SCRIPT
+					vault_node.vm.provision "shell", inline: $script
 				end
 			end
 
