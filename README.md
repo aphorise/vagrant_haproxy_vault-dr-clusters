@@ -1,7 +1,22 @@
 # HashiCorp `vagrant` demo of **`vault`** DR-Primary & DR-Secondary.
 
-~~It is not clear currently (1.9.0) how to raft list-peers on a DR-Secondary after it's setup.~~
-Must use [CLI parameter **`-dr-token=...`**](https://www.vaultproject.io/docs/commands/operator/generate-root#dr-token) instead of VAULT_TOKEN or on API the request body must [contain **`{"dr_operation_token":"..."}`** as demonstrated](https://www.vaultproject.io/api-docs/system/storage/raft#remove-a-node-from-raft-cluster).
+Undo Logs were introduced in Vault 1.12 and helps prevent the breaking of replication on the Secondary (PR / DR) clusters that typically resulted in a permanent `merkle-sync` where currently (in 1.12 or lower) without Undo Logs the only resolution is to re-attempt the impacted Secondary clusters anew (de novo).
+
+To enabled or use Undo Logs set or Launch Vault with the Environment Variable:
+
+```
+# // in-line
+VAULT_REPLICATION_USE_UNDO_LOGS=true vault server ...
+
+#// or exported already
+export VAULT_REPLICATION_USE_UNDO_LOGS=true ;
+vault server ...
+```
+
+Vault 1.13 is expected to have Undo Logs enabled by default.
+
+Where **Consul** is used as a backend store for Vault - then it must be on Consul 1.14 or higher; related improvements are anticipated in Vault 1.13 where recent Consul 1.14.3 & higher 
+is used then may be more suitable to consider evaulating those later versions instead.
 
 **NOTE:**: Place license in `vault_license.txt` for each respective cluster.
 
@@ -12,30 +27,33 @@ Must use [CLI parameter **`-dr-token=...`**](https://www.vaultproject.io/docs/co
 vagrant up --provider virtualbox ;
 # // ... output of provisioning steps.
 
-# // On a separate Terminal session check status of vault2 & cluster.
+# // On a separate Terminal session ssh to `dr2secondary-vault1`
 vagrant ssh dr2secondary-vault1
   # ...
 
-VAULT_TOKEN_DR_BATCH=$(cat vault_token_dr_batch.json | jq -r '.auth.client_token') ;
+# // check details of undo logs in Vault log:
+sudo journalctl -u vault --no-pager | ack -i --passthru --color-match="bold white on_red" undo
 
-VAULT_TOKEN=$VAULT_TOKEN_DR_BATCH vault operator raft list-peers ;
-  # Error reading the raft cluster configuration: Error making API request.
-  # 
-  # URL: GET https://192.168.178.243:8200/v1/sys/storage/raft/configuration
-  # Code: 400. Errors:
-  # 
-  # * path disabled in replication DR secondary mode
+# // check speeds of blockmount device with limited IOPS that's to be used:
+cat storage_perf.txt
+  # /dev/mapper/dm-slow:
+  #  Timing cached reads:     2 MB in  5.14 seconds = 398.11 kB/sec
+  #  Timing buffered disk reads:   2 MB in  4.94 seconds = 414.90 kB/sec
 
-curl -k -L -H "X-Vault-Token: $VAULT_TOKEN_DR_BATCH" ${VAULT_ADDR}/v1/sys/storage/raft/configuration ;
-  # {"errors":["path disabled in replication DR secondary mode"]}
+sudo service vault stop
+  # ...
+cp -r /vault /mnt/blockdev/.
+  # ...
 
-# // CORRECT WAYS TO DO IT:
-vault operator raft list-peers -dr-token=$VAULT_TOKEN_DR_BATCH ;
-curl -k -X PUT -H "X-Vault-Token: ${VAULT_TOKEN}" -d '{"dr_operation_token":"'$VAULT_TOKEN_DR_BATCH'"}' ${VAULT_ADDR}/v1/sys/storage/raft/configuration ;
+# // change /etc/vault.d/vault.hcl to use block device
+nano /etc/vault.d/vault.hcl
+
+sudo service vault restart
+jv  # // follow journalctl logs for vault
+
+# // on another terminal of same host `dr2secondary-vault1`
+watch "vault read -format=json sys/replication/dr/status | jq"
+# // ^^ can repeat above concurrently on `dr1primary-vault1` too
 ```
-
-## Reference material:
-
- - [aphorise/hashicorp.vagrant_vault-hsm](https://github.com/aphorise/hashicorp.vagrant_vault-hsm)
 
 ------

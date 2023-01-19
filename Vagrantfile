@@ -3,8 +3,9 @@
 # // To list interfaces on CLI typically:
 # //	macOS: networksetup -listallhardwareports ;
 # //	Linux: lshw -class network ;
-sNET='en0: Wi-Fi'  # // network adaptor to use for bridged mode
+#sNET='en0: Wi-Fi'  # // network adaptor to use for bridged mode
 #sNET='en6: USB 10/100/1000 LAN'  # // network adaptor to use for bridged mode
+sNET='en8: Thunderbolt Ethernet Slot 1'
 
 sVUSER='vagrant'  # // vagrant user
 sHOME="/home/#{sVUSER}"  # // home path for vagrant user
@@ -12,7 +13,7 @@ sPTH='cc.os.user-input'  # // path where scripts are expected
 sCA_CERT='cacert.crt'  # // Root CA certificate.
 
 iCLUSTERA_N = 1  # // Vault A INSTANCES UP TO 9 <= iN > 0
-iCLUSTERB_N = 3  # // Vault B INSTANCES UP TO 9 <= iN > 0
+iCLUSTERB_N = 1  # // Vault B INSTANCES UP TO 9 <= iN > 0
 iCLUSTERA_C = 0  # // Consul B INSTANCES UP TO 9 <= iN > 2
 iCLUSTERB_C = 0  # // Consul B INSTANCES UP TO 9 <= iN > 2
 bCLUSTERA_CONSUL = false  # // Consul A use Consul as store for vault?
@@ -43,23 +44,27 @@ aCLUSTERB_FILES =  # // Cluster B files to copy to instances
 	"vault_files_dr-secondary/."
 ];
 
-VV1='VAULT_VERSION='+'1.7.10+ent.hsm'  # VV1='' to Install Latest OSS
+VV1='VAULT_VERSION='+'1.12.2+ent.hsm'  # VV1='' to Install Latest OSS
 VR1="VAULT_RAFT_JOIN=https://#{sCLUSTERA_sIP_VAULT_LEADER}:8200"  # raft join script determines applicability
-VV2='VAULT_VERSION='+'1.7.10+ent.hsm'  # VV1='' to Install Latest OSS
+VV2='VAULT_VERSION='+'1.12.2+ent.hsm'  # VV1='' to Install Latest OSS
 VR2="VAULT_RAFT_JOIN=https://#{sCLUSTERB_sIP_VAULT_LEADER}:8200"  # raft join script determines applicability
 
 sERROR_MSG_CONSUL="CONSUL Node count can NOT be zero (0). Set to: 3, 5, 7 , 11, etc."
 
 Vagrant.configure("2") do |config|
-	config.vm.box = "debian/buster64"
+	config.vm.box = "debian/bullseye64"
 	config.vm.box_check_update = false  # // disabled to reduce verbosity - better enabled
 	#config.vm.box_version = "10.4.0"  # // Debian tested version.
 	# // OS may be "ubuntu/bionic64" or "ubuntu/focal64" as well.
 
 	config.vm.provider "virtualbox" do |v|
-		v.memory = 1024  # // RAM / Memory
-		v.cpus = 1  # // CPU Cores / Threads
+		v.memory = 4196  # // RAM / Memory
+		v.cpus = 2  # // CPU Cores / Threads
 		v.check_guest_additions = false  # // disable virtualbox guest additions (no default warning message)
+		#v.customize ["bandwidthctl", :id, "add", "Limit", "--type", "disk", "--limit", "1k"]
+		#v.customize ['storageattach', :id,  '--storagectl', 'SATA', '--port', 1, '--device', 0, '--type', 'hdd', '--medium', 'box.vdi', '--bandwidthgroup', 'Limit']
+		#v.customize ['storageattach', :id,  '--storagectl', 'SATA Controller', '--port', 1, '--device', 0, '--type', 'hdd', '--medium', 'box.vdi', '--bandwidthgroup', 'Limit']
+		#v.customize ['storageattach', :id,  '--storagectl', 'SATA Controller', '--port', 1, '--device', 0, '--type', 'hdd', '--medium', 'disk', '--bandwidthgroup', 'Limit']
 	end
 
 	# // ESSENTIALS PACKAGES INSTALL & SETUP

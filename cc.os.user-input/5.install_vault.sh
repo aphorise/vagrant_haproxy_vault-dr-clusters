@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 set -eu ; # abort this script when a command fails or an unset variable is used.
 #set -x ; # echo all the executed commands.
-
 if [[ ${1-} ]] && [[ (($# == 1)) || $1 == "-h" || $1 == "--help" || $1 == "help" ]] ; then
 printf """Usage: VARIABLE='...' ${0##*/} [OPTIONS]
 Installs HashiCorp Vault & can help setup services.
@@ -15,7 +14,7 @@ For upto date & complete documentation of Vault see: https://www.vaultproject.io
 
 VARIABLES:
 		SETUP='' # // default just download binary otherwise 'server'
-		VAULT_VERSION='' # // default LATEST - '1.4.2+ent' for enterprise or oss by default.
+		VAULT_VERSION='' # // default LATEST - '1.12.2+ent' for enterprise or oss by default.
 		IP_WAN_INTERFACE='eth1' # // default for cluster_address uses where not set eth1.
 
 EXAMPLES:
@@ -25,7 +24,7 @@ EXAMPLES:
 		SETUP='server' IP_WAN_INTERFACE='eth0' ${0##*/} ;
 		# Use a differnt interface ip for vault cluster_address binding.
 
-${0##*/} 0.0.6dr-hsm					April 2022
+${0##*/} 0.0.7dr-hsm					December 2022
 """ ;
 fi ;
 
@@ -109,6 +108,8 @@ if [[ ${VAULT_CONF_CLUSTER_NAME} != 'cluster_name = "'* ]]; then VAULT_CONF_CLUS
 if [[ ${VAULT_CONF_TLS_CERT_FILE} != "" && ${VAULT_CONF_TLS_CERT_FILE} != 'tls_cert_file = "'* ]]; then VAULT_CONF_TLS_CERT_FILE="	tls_cert_file = \"${VAULT_CONF_TLS_CERT_FILE}\"" ; fi ; # // if lacking proper hcl add
 if [[ ${VAULT_CONF_TLS_KEY_FILE} != "" && ${VAULT_CONF_TLS_KEY_FILE} != 'tls_cert_file = "'* ]]; then VAULT_CONF_TLS_KEY_FILE="	tls_key_file = \"${VAULT_CONF_TLS_KEY_FILE}\"" ; fi ; # // if lacking proper hcl add
 if [[ ! ${TLS_CRT_KEY_FILES+x} ]]; then TLS_CRT_KEY_FILES='vault*' ; fi ; # // pattern of files used to determine .key & .crt file
+
+if [[ ! ${TLS_ENABLE+x} ]] ; then TLS_ENABLE="true" ; fi ;
 
 if [[ ! ${LICENSE_FILE+x} ]]; then LICENSE_FILE='vault_license.txt' ; fi ; # // if contents of file are not empty or blank then uses value to apply vault licnese.
 
@@ -341,10 +342,18 @@ function sudoSetup()
 
 				# // determine key & crt file based on current path & first returned file.
 				for sFILE in $(pwd)/${TLS_CRT_KEY_FILES} ; do
-					if [[ ${sFILE} == *".crt" ]] ; then VAULT_CONF_TLS_CERT_FILE="	tls_cert_file = \"${sFILE}\"" ; fi ;
-					if [[ ${sFILE} == *".key" ]] ; then VAULT_CONF_TLS_KEY_FILE="	tls_key_file = \"${sFILE}\"" ; chown ${USER_VAULT} ${sFILE} ; fi ;
+					if [[ ${sFILE} == *".crt" ]] ; then
+						if [[ ${TLS_ENABLE} == "true" ]] ; then VAULT_CONF_TLS_CERT_FILE="	tls_cert_file = \"${sFILE}\"" ; fi ;
+						if [[ ${TLS_ENABLE} != "true" ]] ; then VAULT_CONF_TLS_CERT_FILE="	# tls_cert_file = \"${sFILE}\"" ; fi ;
+					fi ;
+					if [[ ${sFILE} == *".key" ]] ; then
+						if [[ ${TLS_ENABLE} == "true" ]] ; then VAULT_CONF_TLS_KEY_FILE="	tls_key_file = \"${sFILE}\"" ; fi ;
+						if [[ ${TLS_ENABLE} != "true" ]] ; then VAULT_CONF_TLS_KEY_FILE="	#tls_key_file = \"${sFILE}\"" ; fi ;
+						chown ${USER_VAULT} ${sFILE} ;
+					fi ;
 					if [[ ${VAULT_CONF_TLS_CERT_FILE} != "" && ${VAULT_CONF_TLS_KEY_FILE} != "" ]] ; then
-						VAULT_CONF_TLS_DISABLED='	# tls_disable      = true' ;
+						if [[ ${TLS_ENABLE} == "true" ]] ; then VAULT_CONF_TLS_DISABLED='	# tls_disable      = true' ; fi ;
+						if [[ ${TLS_ENABLE} != "true" ]] ; then VAULT_CONF_TLS_DISABLED='	tls_disable      = true' ; fi ;
 						break ;
 					fi ;
 				done ;
@@ -381,7 +390,7 @@ function sudoSetup()
 				[[ "1" == $(bc <<<"a = 1.8 <= ${VVERSION2}") ]] ; then
 				cp ${LICENSE_FILE} ${PATH_VAULT}/.
 				VLPWD="${PATH_VAULT}/${LICENSE_FILE}"
-				VAULT_CONF_LICENSE="license_path=\"${VLPWD}\"" 
+				VAULT_CONF_LICENSE="license_path=\"${VLPWD}\""
 			fi ;
 
 			printf "%s" ''''${VAULT_CLUSTER_NAME}'
@@ -394,7 +403,23 @@ listener "tcp" {
 '${VAULT_CONF_TLS_CERT_FILE}'
 '${VAULT_CONF_TLS_KEY_FILE}'
 '${VAULT_CONF_TLS_DISABLED}'
+	# tls_cipher_suites = "TLS_CHACHA20_POLY1305_SHA256,TLS_RSA_WITH_AES_256_GCM_SHA384,TLS_AES_256_GCM_SHA384,TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,TLS_RSA_WITH_AES_128_GCM_SHA256,TLS_AES_128_GCM_SHA256,TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256"
+	telemetry {
+		unauthenticated_metrics_access = true
+	}
 }
+
+telemetry {
+	prometheus_retention_time = "24h"
+	disable_hostname = true
+}
+
+replication {
+  use_wal_undo_logs = "true"
+  resolver_discover_servers = true
+  best_effort_wal_wait_duration = "2s"
+}
+
 '"${VAULT_CONF_STORE}"'
 '"$(iX=0 ; while (( ${#VAULT_CONF_SEAL[@]} > iX )); do printf "${VAULT_CONF_SEAL[iX++]}\n" ; done )"'
 
@@ -422,12 +447,12 @@ raw_storage_endpoint = true
 
 	if ! [[ -s ${SYSD_FILE} ]] && [[ ${SETUP,,} == *'server'* ]]; then
 		# // common Vault version systemd unit file
-		UNIT_SYSTEMD='[Unit]\nDescription="HashiCorp Vault - A tool for managing secrets"\nDocumentation=https://www.vaultproject.io/docs/\nRequires=network-online.target\nAfter=network-online.target\nConditionFileNotEmpty=/etc/vault.d/vault.hcl\nStartLimitIntervalSec=60\nStartLimitBurst=3\n\n[Service]\nUser=vault\nGroup=vault\nProtectSystem=full\nProtectHome=read-only\nPrivateTmp=yes\nPrivateDevices=yes\nSecureBits=keep-caps\nAmbientCapabilities=CAP_IPC_LOCK\nCapabilities=CAP_IPC_LOCK+ep\nCapabilityBoundingSet=CAP_SYSLOG CAP_IPC_LOCK\nNoNewPrivileges=yes\nExecStart=/usr/local/bin/vault server -config=/etc/vault.d/vault.hcl\nExecReload=/bin/kill --signal HUP $MAINPID\nKillMode=process\nKillSignal=SIGINT\nRestart=on-failure\nRestartSec=5\nTimeoutStopSec=30\nStartLimitInterval=60\nStartLimitIntervalSec=60\nStartLimitBurst=3\nLimitNOFILE=65536\nLimitMEMLOCK=infinity\n\n[Install]\nWantedBy=multi-user.target\n' ;
+		UNIT_SYSTEMD='[Unit]\nDescription="HashiCorp Vault - A tool for managing secrets"\nDocumentation=https://www.vaultproject.io/docs/\nRequires=network-online.target\nAfter=network-online.target\nConditionFileNotEmpty=/etc/vault.d/vault.hcl\nStartLimitIntervalSec=60\nStartLimitBurst=3\n\n[Service]\nEnvironment="VAULT_REPLICATION_USE_UNDO_LOGS=true"\nUser=vault\nGroup=vault\nProtectSystem=full\nProtectHome=read-only\nPrivateTmp=yes\nPrivateDevices=yes\nSecureBits=keep-caps\nAmbientCapabilities=CAP_IPC_LOCK\nCapabilities=CAP_IPC_LOCK+ep\nCapabilityBoundingSet=CAP_SYSLOG CAP_IPC_LOCK\nNoNewPrivileges=yes\nExecStart=/usr/local/bin/vault server -config=/etc/vault.d/vault.hcl\nExecReload=/bin/kill --signal HUP $MAINPID\nKillMode=process\nKillSignal=SIGINT\nRestart=on-failure\nRestartSec=5\nTimeoutStopSec=30\nStartLimitInterval=60\nStartLimitIntervalSec=60\nStartLimitBurst=3\nLimitNOFILE=65536\nLimitMEMLOCK=infinity\n\n[Install]\nWantedBy=multi-user.target\n' ;
 
 		# // Vault hsm / pkcs11 verison:
 		VVERSION=$(vault --version) ;
 		if [[ ${VVERSION} == *"ent.hsm"* ]] ; then
-			UNIT_SYSTEMD='[Unit]\nDescription="HashiCorp Vault - A tool for managing secrets"\nDocumentation=https://www.vaultproject.io/docs/\nRequires=network-online.target\nAfter=network-online.target\nConditionFileNotEmpty=/etc/vault.d/vault.hcl\nStartLimitIntervalSec=60\nStartLimitBurst=3\n\n[Service]\nUser=vault\nGroup=vault\nProtectSystem=full\nProtectHome=read-only\nPrivateTmp=yes\nPrivateDevices=yes\nSecureBits=keep-caps\nAmbientCapabilities=CAP_IPC_LOCK\n#Capabilities=CAP_IPC_LOCK+ep\nCapabilityBoundingSet=CAP_SYSLOG CAP_IPC_LOCK\nNoNewPrivileges=yes\nExecStart=/usr/local/bin/vault server -config=/etc/vault.d/vault.hcl\nExecReload=/bin/kill --signal HUP $MAINPID\nKillMode=process\nKillSignal=SIGINT\nRestart=on-failure\nRestartSec=5\nTimeoutStopSec=30\n#StartLimitInterval=60\n#StartLimitIntervalSec=60\nStartLimitBurst=3\nLimitNOFILE=65536\nLimitMEMLOCK=infinity\n\n[Install]\nWantedBy=multi-user.target\n' ;
+			UNIT_SYSTEMD='[Unit]\nDescription="HashiCorp Vault - A tool for managing secrets"\nDocumentation=https://www.vaultproject.io/docs/\nRequires=network-online.target\nAfter=network-online.target\nConditionFileNotEmpty=/etc/vault.d/vault.hcl\nStartLimitIntervalSec=60\nStartLimitBurst=3\n\n[Service]\nEnvironment="VAULT_REPLICATION_USE_UNDO_LOGS=true"\nUser=vault\nGroup=vault\nProtectSystem=full\nProtectHome=read-only\nPrivateTmp=yes\nPrivateDevices=yes\nSecureBits=keep-caps\nAmbientCapabilities=CAP_IPC_LOCK\n#Capabilities=CAP_IPC_LOCK+ep\nCapabilityBoundingSet=CAP_SYSLOG CAP_IPC_LOCK\nNoNewPrivileges=yes\nExecStart=/usr/local/bin/vault server -config=/etc/vault.d/vault.hcl\nExecReload=/bin/kill --signal HUP $MAINPID\nKillMode=process\nKillSignal=SIGINT\nRestart=on-failure\nRestartSec=5\nTimeoutStopSec=30\n#StartLimitInterval=60\n#StartLimitIntervalSec=60\nStartLimitBurst=3\nLimitNOFILE=65536\nLimitMEMLOCK=infinity\n\n[Install]\nWantedBy=multi-user.target\n' ;
 		fi ;
 
 		printf "${UNIT_SYSTEMD}" > ${SYSD_FILE} && chmod 664 ${SYSD_FILE}
@@ -469,10 +494,34 @@ function vaultInitSetup()
 					pERR 'ERROR: unable to set initial VAULT Recovery or Root tokens.' ;
 				fi ;
 			else
-				if [[ -s ${VAULT_INIT_FILE} && ${VSEAL_TATUS[5]} != "raft" ]] ; then
-					pOUT 'VAULT UNSEAL: Attempting Unseal using UNSEAL KEYS from Leader Node (vault_init.json).' ;
-					VAULT_TOKEN=$(jq -r '.root_token' ${VAULT_INIT_FILE}) ;
-					VAULT_TOKEN=${VAULT_TOKEN} vault operator unseal $(jq -r '.unseal_keys_b64[0]' ${VAULT_INIT_FILE}) ;
+				if [[ -s ${VAULT_INIT_FILE} && ${VSEAL_TATUS[5]} == "raft" ]] ; then
+					# // may need raft join if storage is configured as such for all nodes after 1.
+					if [[ ${VAULT_RAFT_JOIN} != "" ]] ; then
+						VAULT_TOKEN=$(jq -r '.root_token' ${VAULT_INIT_FILE}) ;
+						if [[ ${VAULT_TOKEN} != "" ]] ; then
+							pOUT 'RAFT: Attempting to join.' ;
+							sleep 1 ;
+							set +e ;
+							vault operator raft join ${VAULT_RAFT_JOIN} > /dev/null 2>&1 ;
+							if (($? == 0)) ; then
+								pOUT "RAFT: SUCCESS JOINED ${VAULT_NODENAME} to ${VAULT_RAFT_JOIN}." ;
+							else
+								pERR "--ERROR: Vault RAFT unable to join ${VAULT_NODENAME} to ${VAULT_RAFT_JOIN}." ;
+							fi ;
+							set -e ;
+							pOUT 'WAITING 4 seconds for Vault to sync before manually UNSEALING.' ;
+							sleep 4 ; # // need a sleep 8 seconds for status to update & primary node to be selected.
+							pOUT 'VAULT UNSEAL: Attempting Unseal using UNSEAL KEYS from Leader Node (vault_init.json).' ;
+							vault operator unseal $(jq -r '.unseal_keys_b64[0]' ${VAULT_INIT_FILE}) > /dev/null 2>&1 ;
+							if (($? == 0)) ; then
+								pOUT "SHAMIR: UNSEAL MANUALLY USING LOACAL KEYS." ;
+							else
+								pERR "--ERROR: UNSEAL ISSUE." ;
+							fi ;
+						else
+							pERR '--ERROR: Vault RAFT - No Token or Vault not ready to join.' ;
+						fi ;
+					fi ;
 				#else printf 'VAULT: NO UNSEAL ACTIONS TAKEN.\n' ;
 				fi ;
 			fi ;
@@ -530,7 +579,6 @@ function vaultInitSetup()
 	fi ;
 
 	# // apply license if enterprise & file exists and is not empty or commented.
-	# // LICNESE for 1.8.x or higher needs file and different to earlier
 	VVERSION=$(vault --version) ;
 	VVERSION2=$(echo ${VVERSION} | cut -d'v' -f2 | cut -d' ' -f1) ;
 	# // 1.10 semantic versions wont work with all x < y comparisons
@@ -543,6 +591,7 @@ function vaultInitSetup()
 	if [[ ${VAULT_NODENAME} == *"1" ]] && [[ ${VVERSION} == *"ent" || ${VVERSION} == *"ent.hsm"* ]] && [[ -s ${LICENSE_FILE} ]] && \
 		[[ (( ${#VVERSION2} == 4 )) && "0" == $(bc <<<"1.10 <= $VVERSION2") ]] || \
 		[[ (( ${#VVERSION2} == 3 )) && "0" == $(bc <<<"a = 1.8 <= ${VVERSION2}") ]] ; then
+
 		set +e ;
 		# // read the key
 		VAULT_LICENSE=$(grep -v '#' ${LICENSE_FILE}) ;
@@ -563,25 +612,7 @@ function vaultInitSetup()
 		fi ;
 	fi ;
 
-	# // may need raft join if storage is configured as such for all nodes after 1.
-	if [[ ${VAULT_RAFT_JOIN} != "" ]] && [[ ${VSEAL_TATUS[5]} == "raft" ]] ; then
-		if [[ ${VAULT_TOKEN} != "" ]] ; then
-			pOUT 'RAFT: Attempting to join.' ;
-			sleep 1 ;
-			set +e ;
-			VAULT_TOKEN=${VAULT_TOKEN} VAULT_ADDR=${VAULT_API_ADDR} vault operator raft join ${VAULT_RAFT_JOIN} > /dev/null 2>&1 ;
-			if (($? == 0)) ; then
-				pOUT "RAFT: SUCCESS JOINED ${VAULT_NODENAME} to ${VAULT_RAFT_JOIN}." ;
-			else
-				pERR "--ERROR: Vault RAFT unable to join ${VAULT_NODENAME} to ${VAULT_RAFT_JOIN}." ;
-			fi ;
-			set -e ;
-		else
-			pERR '--ERROR: Vault RAFT - No Token or Vault not ready to join.' ;
-		fi ;
-	fi ;
-
-	if [[ -s ${VAULT_POST_SETUP_FILE} ]] && ! [[ ${VAULT_NODENAME} == *"hsm2" ]]; then
+	if [[ -s ${VAULT_POST_SETUP_FILE} ]] ; then
 		export VAULT_TOKEN=${VAULT_TOKEN}
 		bash "${VAULT_POST_SETUP_FILE}"
 	fi ;

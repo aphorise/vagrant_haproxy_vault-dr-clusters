@@ -21,7 +21,7 @@ UNAME="$(uname -ar)" ;
 # // OS Version specific apps missing:
 # PKG_UBUNTU='realpath' ; # if [[ ${UNAME} == *"Ubuntu"* ]] ; then sudo apt-get update > /dev/null && sudo apt-get install -yq ${PKG_UBUNTU} > /dev/null ; fi ;
 # // common utils & build tools: make, cpp, etc.
-PKGS="policykit-1 unzip curl htop screen jq build-essential libssh-dev bc" ;
+PKGS="locales locales-all bc policykit-1 unzip curl htop screen jq build-essential libssh-dev rsync ack hdparm" ;
 PKGS="${PKGS}" ;  # ${PKG_UBUNTU} any-other-packages" ;
 printf "OS INSTALLING: ${PKGS} ...\n" ;
 sudo apt-get update > /dev/null && apt-get install -yq ${PKGS} > /dev/null ;
@@ -69,3 +69,19 @@ printf 'BASH: defaults in (.bashrc) profile set.\n' ;
 #fi ;
 #printf "# // UNSTABLE sources (for latest apps 2.6+):\n${PKG_SRC}\n" > /etc/apt/sources.list.d/unstable.list ;
 #apt-get update > /dev/null 2>&1 ;
+
+if [[ $(hostname) == "dr2secondary-vault1" ]] ; then
+	# // create a blockdev device with 1GB block of 0's
+	sudo dd if=/dev/zero of=/tmp/1gb-of-zeroes bs=1024k count=1000 ;
+	sudo losetup --show --find /tmp/1gb-of-zeroes ;  # // shoud show: /dev/loop0
+	bsize=$(sudo blockdev --getsize /dev/loop0) ;
+	# echo "0 ${bsize} delay /dev/loop0 0 2800" | sudo dmsetup create dm-slow ;  # // same read write delay
+	echo "0 ${bsize} delay /dev/loop0 0 2349 /dev/loop0 0 2349" | sudo dmsetup create dm-slow ;  # // different read to write delay
+	sudo mkfs -t ext2 /dev/mapper/dm-slow ;
+	sudo mkdir /mnt/blockdev ;
+	sudo mount /dev/mapper/dm-slow /mnt/blockdev ;
+	if [[ $(logname) != $(whoami) ]] ; then
+		sudo hdparm -Tt /dev/mapper/dm-slow >> /home/$(logname)/storage_perf.txt ;
+		sudo hdparm -Tt /dev/sda >> /home/$(logname)/storage_perf.txt ;
+	fi ;
+fi ;
