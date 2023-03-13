@@ -426,7 +426,16 @@ cluster_addr = "'${VAULT_CLU_ADDR}'"
 listener "tcp" {
 	address     = "127.0.0.1:8200"
 	tls_disable = true
+	telemetry {
+		unauthenticated_metrics_access = true
+	}
 }
+
+telemetry {
+	prometheus_retention_time = "24h"
+	disable_hostname = true
+}
+
 '"${sLISTENER_IP_LB}"'
 '"${sLISTENER_IP}"'
 '"${VAULT_CONF_STORE}"'
@@ -592,6 +601,13 @@ function vaultInitSetup()
 	if [[ ${VAULT_TOKEN} == "" ]] ; then
 		# // VAULT_TOKEN ought to exist by now from either init or copy from vault1:
 		VAULT_TOKEN=$(grep -F VAULT_TOKEN ${HOME_PATH}/.bashrc | cut -d'=' -f2) ;
+	else
+		if ! grep VAULT_TOKEN ${HOME_PATH}/.bashrc > /dev/null 2>&1 ; then
+			# printf "${VAULT_TOKEN}" > ${HOME_PATH}/vault_token.txt ;
+			printf "\nexport VAULT_TOKEN=${VAULT_TOKEN}\n" >> ${HOME_PATH}/.bashrc ;
+			pOUT "Set VAULT_TOKEN in ${HOME_PATH}/.bashrc" ;
+		# else pOUT 'VAULT_TOKEN already present in .bashrc profile.' ;
+		fi ;
 	fi ;
 
 	# // apply license if enterprise & file exists and is not empty or commented.
