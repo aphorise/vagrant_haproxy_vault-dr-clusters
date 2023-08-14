@@ -24,7 +24,7 @@ UNAME="$(uname -ar)" ;
 # // OS Version specific apps missing:
 # PKG_UBUNTU='realpath' ; # if [[ ${UNAME} == *"Ubuntu"* ]] ; then sudo apt-get update > /dev/null && sudo apt-get install -yq ${PKG_UBUNTU} > /dev/null ; fi ;
 # // common utils & build tools: make, cpp, etc.
-PKGS="locales rsync hdparm policykit-1 unzip curl htop screen jq build-essential libssh-dev bc glances fio sysstat linux-perf net-tools" ;
+PKGS="locales rsync hdparm policykit-1 unzip curl htop screen tmux jq build-essential libssh-dev bc glances fio sysstat linux-perf net-tools ack" ;
 PKGS="${PKGS}" ;  # ${PKG_UBUNTU} any-other-packages" ;
 printf "OS INSTALLING: ${PKGS:0:62} ...\n" ;
 sudo apt-get update > /dev/null && apt-get install -yq ${PKGS} > /dev/null ;
@@ -36,6 +36,7 @@ export HISTSIZE=1000000
 export HISTFILESIZE=100000000
 export HISTCONTROL=ignoreboth:erasedups
 PROMPT_COMMAND="history -a;$PROMPT_COMMAND"
+alias ack="ack -i --color-match=\"bold white on_red\""
 alias nano="nano -c"
 alias grep="grep --color=auto"
 alias ls="ls --color=auto"

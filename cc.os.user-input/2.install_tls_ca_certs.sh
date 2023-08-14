@@ -340,8 +340,8 @@ if [[ -s /etc/ca-certificates.conf ]] ; then
 		# // expected cacert.crt file in current script path (ommitting any prefix paths)
 		if cp ${CA_FILENAME} /usr/local/share/ca-certificates/. ; then
 			# // root CA must be added OS.
-			CRT_UPDATE=$(update-ca-certificates 2>&1 | head -n2 | tail -n1 | cut -d' ' -f 1) ;
-			if ((CRT_UPDATE != 0)) ; then
+			CRT_UPDATE=$(update-ca-certificates 2>&1 | grep 'added' | cut -d' ' -f 1) ;
+			if (($?==0 && ${#CRT_UPDATE} != 0)) ; then
 				pOUT "OS CA Certificates - ADDED: ${CRT_UPDATE} to trust store." ;
 			else
 				pERR "ERROR: CA Certificates\e[0m Nothing Added to trust store - ${CRT_UPDATE}!" ;

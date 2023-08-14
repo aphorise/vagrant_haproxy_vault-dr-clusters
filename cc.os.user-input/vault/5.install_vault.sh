@@ -473,7 +473,7 @@ raw_storage_endpoint = true
 		systemctl enable vault.service > /dev/null 2>&1 ;
 		systemctl start vault.service > /dev/null 2>&1 ;
 
-		SLEEP_TIME=12 ; # // time to sleep after a restart
+		SLEEP_TIME=6 ; # // time to sleep after a restart
 		pOUT "WAITING ${SLEEP_TIME} seconds for Vault service to be ready after a start." ;
 		sleep ${SLEEP_TIME} ;
 	fi ;
@@ -502,12 +502,12 @@ function vaultInitSetup()
 				if (($? == 0)) ; then
 					chown ${USER_MAIN} ${VAULT_INIT_FILE} && chown ${USER_MAIN} ${VAULT_TOKEN_INIT} ;
 					pOUT 'VAULT INIT: with SHAMIR (DEFAULT).' ;
-					pOUT 'WAITING 10 seconds for Vault service to be ready after DEFAULT SHAMIR init set (will vault unseal after).' ;
-					sleep 10 ; # // need a sleep 10 seconds for status to update.
+					pOUT 'WAITING 6 seconds for Vault service to be ready after DEFAULT SHAMIR init set (will vault unseal after).' ;
+					sleep 6 ; # // need a sleep 10 seconds for status to update.
 					VAULT_TOKEN=$(jq -r '.root_token' ${VAULT_INIT_FILE}) ;
 					VAULT_TOKEN=${VAULT_TOKEN} vault operator unseal $(jq -r '.unseal_keys_b64[0]' ${VAULT_INIT_FILE}) > /dev/null ;
-					pOUT 'WAITING 10 seconds after Vault unseal for leadership election.' ;
-					sleep 10 ; # // need a sleep 10 seconds for status to update & leader node to be selected.
+					pOUT 'WAITING 5 seconds after Vault unseal for leadership election.' ;
+					sleep 5 ; # // need a sleep 10 seconds for status to update & leader node to be selected.
 				else
 					pERR 'ERROR: unable to set initial VAULT Recovery or Root tokens.' ;
 				fi ;
@@ -550,8 +550,8 @@ function vaultInitSetup()
 			if (($? == 0)) ; then
 				chown ${USER_MAIN} ${VAULT_INIT_FILE} && chown ${USER_MAIN} ${VAULT_TOKEN_INIT} ;
 				pOUT 'VAULT INIT: with KMS of awskms.' ;
-				pOUT 'WAITING 10 seconds for Vault service to be ready after KMS init.' ;
-				sleep 10 ; # // need a sleep 8 seconds for status to update & primary node to be selected.
+				pOUT 'WAITING 5 seconds for Vault service to be ready after KMS init.' ;
+				sleep 5 ; # // need a sleep 8 seconds for status to update & primary node to be selected.
 			else
 				pERR 'ERROR: unable to set initial VAULT Recovery or Root tokens.' ;
 			fi ;
@@ -562,8 +562,8 @@ function vaultInitSetup()
 			if (($? == 0)) ; then
 				chown ${USER_MAIN} ${VAULT_INIT_FILE} && chown ${USER_MAIN} ${VAULT_TOKEN_INIT} ;
 				pOUT 'VAULT INIT: with HSM pkcs11 (SoftHSM).' ;
-				pOUT 'WAITING 15 seconds for Vault service to be ready after HSM init.' ;
-				sleep 15 ; # // need a sleep 8 seconds for status to update & primary node to be selected.
+				pOUT 'WAITING 6 seconds for Vault service to be ready after HSM init.' ;
+				sleep 6 ; # // need a sleep 8 seconds for status to update & primary node to be selected.
 			else
 				pERR 'ERROR: unable to set initial VAULT Recovery or Root tokens.' ;
 			fi ;

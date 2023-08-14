@@ -1,5 +1,7 @@
 # HashiCorp `vagrant` demo of HAProxy with **`vault`** DR-Primary & DR-Secondary clusters
 
+**See: [LASTRUN.md for details of most recent tests](LASTRUN.md).**
+
 This repo is a mock example of two Vault clusters which are serviced by their respective HAProxy Load-Balancer using `X-Forward-For`.
 
 It's possible to use [Vault HSM Enterprise](https://www.vaultproject.io/docs/enterprise/hsm) with [SoftHSM](https://www.opendnssec.org/softhsm/) as an [auto-unseal type is possible](https://www.vaultproject.io/docs/configuration/seal/pkcs11) as detailed below.

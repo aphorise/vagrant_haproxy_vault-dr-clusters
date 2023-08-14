@@ -3,7 +3,7 @@
 # // To list interfaces on CLI typically:
 # //	macOS: networksetup -listallhardwareports ;
 # //	Linux: lshw -class network ;
-sNET='en6: USB 10/100/1000 LAN'  # // network adaptor to use for bridged mode
+sNET='enp2s0'  # // network adaptor to use for bridged mode
 
 iCLUSTERA_N = 1  # // Vault A INSTANCES UP TO 9 <= iN > 0
 iCLUSTERB_N = 1  # // Vault B INSTANCES UP TO 9 <= iN > 0
@@ -11,11 +11,11 @@ iCLUSTERA_C = 0  # // Consul B INSTANCES UP TO 9 <= iN > 2
 iCLUSTERB_C = 0  # // Consul B INSTANCES UP TO 9 <= iN > 2
 bCLUSTERA_CONSUL = false  # // Consul A use Consul as store for vault?
 bCLUSTERB_CONSUL = false  # // Consul B use Consul as store for vault?
-bCLUSTERA_LB = true  # true  # // Cluster A with HAPROXY?
-bCLUSTERB_LB = true  # // Cluster B with HAPROXY?
+bCLUSTERA_LB = false  # true  # // Cluster A with HAPROXY?
+bCLUSTERB_LB = false  # // Cluster B with HAPROXY?
 
-sCLUSTERA_IP_CLASS_D='192.168.178'  # // Consul A NETWORK CIDR forconfigs.
-sCLUSTERB_IP_CLASS_D='192.168.178'  # // Consul B NETWORK CIDR for configs.
+sCLUSTERA_IP_CLASS_D='192.168.168'  # // Consul A NETWORK CIDR forconfigs.
+sCLUSTERB_IP_CLASS_D='192.168.168'  # // Consul B NETWORK CIDR for configs.
 iCLUSTERA_IP_CONSUL_CLASS_D=110  # // Consul A IP starting D class (increment or de)
 iCLUSTERB_IP_CONSUL_CLASS_D=120  # // Consul B IP starting D class (increment or de)
 iCLUSTERA_IP_VAULT_CLASS_D=234  # // Vault A Leader IP starting D class (increment or de)
@@ -32,9 +32,9 @@ sCLUSTERB_IPS=''  # // Consul B - IPs constructed based on IP D class + instance
 sCLUSTERA_sIP="#{sCLUSTERA_IP_CLASS_D}.254"  # // HAProxy Load-Balancer IP
 sCLUSTERB_sIP="#{sCLUSTERB_IP_CLASS_D}.253"  # // HAProxy Load-Balancer IP
 
-VV1='VAULT_VERSION='+'1.10.4+ent.hsm'  # VV1='' to Install Latest OSS
+VV1='VAULT_VERSION='+'1.14.1+ent.hsm'  # VV1='' to Install Latest OSS
 VR1="VAULT_RAFT_JOIN=https://#{sCLUSTERA_sIP_VAULT_LEADER}:8200"  # raft join script determines applicability
-VV2='VAULT_VERSION='+'1.10.4+ent.hsm'  # VV1='' to Install Latest OSS
+VV2='VAULT_VERSION='+'1.14.1+ent.hsm'  # VV1='' to Install Latest OSS
 VR2="VAULT_RAFT_JOIN=https://#{sCLUSTERB_sIP_VAULT_LEADER}:8200"  # raft join script determines applicability
 
 CLUSTERA_VAULT_NAME = 'DR-Primary'  # // Vault A Cluster Name

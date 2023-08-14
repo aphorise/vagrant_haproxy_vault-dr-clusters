@@ -14,10 +14,11 @@ sudo apt-get update > /dev/null && apt-get install -yq ${PKGS_HSM} > /dev/null ;
 # // default main or stable apps
 sudo cp /etc/apt/sources.list /etc/apt/sources.list.d/unstable.list ;
 if [[ ${UNAME} == *"Debian"* ]] ; then
-	printf 'APT::Default-Release "stable";\n' > /etc/apt/apt.conf.d/99defaultrelease ;
-	PKG_TRG='unstable' ;
-	PKG_SRC="$(grep -E '#|deb-src|security|^$' -v /etc/apt/sources.list.d/unstable.list)" ;
-	PKG_SRC=${PKG_SRC/debian[[:space:]]*/'debian unstable main'} ;
+:;
+	#printf 'APT::Default-Release "stable";\n' > /etc/apt/apt.conf.d/99defaultrelease ;
+	#PKG_TRG='unstable' ;
+	#PKG_SRC="$(grep -E '#|deb-src|security|^$' -v /etc/apt/sources.list.d/unstable.list)" ;
+	#PKG_SRC=${PKG_SRC/debian[[:space:]]*/'debian unstable main'} ;
 elif [[ ${UNAME} == *"Ubuntu"* ]] ; then
 	PKG_TRG='groovy' ;
 	set +e ;  # // disbale errors
@@ -32,10 +33,10 @@ elif [[ ${UNAME} == *"Ubuntu"* ]] ; then
 else
 	printf "\e[31mERROR: Linux OS / Distribution not recognited - only Debian or Ubuntu are currently supported.\e[0m" ; exit 1 ;
 fi ;
-printf "# // UNSTABLE sources (for softhsm2 2.6+):\n${PKG_SRC}\n" > /etc/apt/sources.list.d/unstable.list ;
+#printf "# // UNSTABLE sources (for softhsm2 2.6+):\n${PKG_SRC}\n" > /etc/apt/sources.list.d/unstable.list ;
 apt-get update > /dev/null 2>&1 ;
 printf "OS INSTALLING: softhsm2 ...\n" ;
-apt-get -yq -t ${PKG_TRG} install softhsm2 > /dev/null ;
+apt-get -yq install softhsm2 > /dev/null ;
 
 # // DOWNLOAD, BUILD & INSTALL SoftHSM from source
 #HSM_SOFT_VERSION='2.6.1' ;
