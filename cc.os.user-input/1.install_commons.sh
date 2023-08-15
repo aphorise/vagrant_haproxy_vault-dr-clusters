@@ -36,7 +36,7 @@ export HISTSIZE=1000000
 export HISTFILESIZE=100000000
 export HISTCONTROL=ignoreboth:erasedups
 PROMPT_COMMAND="history -a;$PROMPT_COMMAND"
-alias ack="ack -i --color-match=\"bold white on_red\""
+alias ack="ack -i --color-match=\'bold white on_red\'"
 alias nano="nano -c"
 alias grep="grep --color=auto"
 alias ls="ls --color=auto"
