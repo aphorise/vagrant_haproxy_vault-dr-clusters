@@ -64,9 +64,9 @@ sERROR_MSG_CONSUL="CONSUL Node count can NOT be zero (0). Set to: 3, 5, 7 , 11, 
 
 Vagrant.configure("2") do |config|
 	config.vm.post_up_message = ""
-	config.vm.box = "debian/bullseye64"
+	config.vm.box = "debian/bookworm64"
 	config.vm.box_check_update = false  # // disabled to reduce verbosity - better enabled
-	#config.vm.box_version = "11.20220328.1"  # // Debian tested version.
+	#config.vm.box_version = "12.20220328.1"  # // Debian tested version.
 
 	config.vm.provider "virtualbox" do |v|
 		v.memory = 1024  # // RAM / Memory
@@ -86,7 +86,7 @@ Vagrant.configure("2") do |config|
 			haproxy_dr1.vm.hostname = vm_name2
 			haproxy_dr1.vm.network "public_network", bridge: "#{sNET}", ip: "#{sCLUSTERA_sIP}"
 			# haproxy_dr1.vm.network "forwarded_port", guest: 80, host: "48080", id: "#{vm_name2}"
-	
+
 			# // ORDERED: setup certs then call HAProxy setup.
 			haproxy_dr1.vm.provision "file", source: "#{sPTH}/2.install_tls_ca_certs.sh", destination: "#{sHOME}/install_tls_ca_certs.sh"
 			haproxy_dr1.vm.provision "file", source: "#{sPTH}/haproxy/3.install_haproxy.sh", destination: "#{sHOME}/install_haproxy.sh"
@@ -241,7 +241,7 @@ SCRIPT
 			haproxy_dr2.vm.hostname = vm_name3
 			haproxy_dr2.vm.network "public_network", bridge: "#{sNET}", ip: "#{sCLUSTERB_sIP}"
 			# haproxy_dr2.vm.network "forwarded_port", guest: 80, host: "48080", id: "#{vm_name2}"
-	
+
 			# // ORDERED: setup certs then call HAProxy setup.
 			haproxy_dr2.vm.provision "file", source: "#{sPTH}/2.install_tls_ca_certs.sh", destination: "#{sHOME}/install_tls_ca_certs.sh"
 			haproxy_dr2.vm.provision "file", source: "#{sPTH}/haproxy/3.install_haproxy.sh", destination: "#{sHOME}/install_haproxy.sh"
