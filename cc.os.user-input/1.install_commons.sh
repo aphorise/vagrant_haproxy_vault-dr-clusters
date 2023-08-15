@@ -26,7 +26,7 @@ UNAME="$(uname -ar)" ;
 # // common utils & build tools: make, cpp, etc.
 PKGS="locales rsync hdparm policykit-1 unzip curl htop screen tmux jq build-essential libssh-dev bc glances fio sysstat linux-perf net-tools ack" ;
 PKGS="${PKGS}" ;  # ${PKG_UBUNTU} any-other-packages" ;
-printf "OS INSTALLING: ${PKGS:0:62} ...\n" ;
+printf "OS INSTALLING: ${PKGS:0:68} ...\n" ;
 sudo apt-get update > /dev/null && apt-get install -yq ${PKGS} > /dev/null ;
 
 # // .bashrc profile alias and history settings.
@@ -36,7 +36,7 @@ export HISTSIZE=1000000
 export HISTFILESIZE=100000000
 export HISTCONTROL=ignoreboth:erasedups
 PROMPT_COMMAND="history -a;$PROMPT_COMMAND"
-alias ack="ack -i --color-match=\'bold white on_red\'"
+alias ack="ack -i --color-match=\\\"bold white on_red\\\""
 alias nano="nano -c"
 alias grep="grep --color=auto"
 alias ls="ls --color=auto"
@@ -44,6 +44,7 @@ alias dir="dir --color=auto"
 alias reset="reset; stty sane; tput rs1; clear; echo -e \\"\033c\\""
 alias jv="sudo journalctl -u vault.service --no-pager -f --output cat"
 alias jreset="sudo journalctl --rotate && sudo journalctl --vacuum-time=1s"
+PS1="${debian_chroot:+($debian_chroot)}\[\033[38;5;244m\]\\u@\[\033[38;5;202m\]\h\[\033[00m\]:\[\033[01;34m\]\w\[\033[00m\]\$ "
 ''' ;
 printf "${sBASH_DEFAULT}" >> ~/.bashrc ;
 if [[ $(logname) != $(whoami) ]] ; then printf "${sBASH_DEFAULT}" >> /home/$(logname)/.bashrc ; fi ;
