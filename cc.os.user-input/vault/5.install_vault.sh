@@ -473,7 +473,7 @@ raw_storage_endpoint = true
 		systemctl enable vault.service > /dev/null 2>&1 ;
 		systemctl start vault.service > /dev/null 2>&1 ;
 
-		SLEEP_TIME=6 ; # // time to sleep after a restart
+		SLEEP_TIME=8 ; # // time to sleep after a restart
 		pOUT "WAITING ${SLEEP_TIME} seconds for Vault service to be ready after a start." ;
 		sleep ${SLEEP_TIME} ;
 	fi ;

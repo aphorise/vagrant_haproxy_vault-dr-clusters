@@ -83,6 +83,9 @@ Vagrant.configure("2") do |config|
 	# // A A A A A A A ------ CLUSTER A ------ CLUSTER A ------ A A A A A A A A
 	if bCLUSTERA_LB then  # // HAProxy Host
 		config.vm.define vm_name2="#{sCLUSTERA_HAP_NAME}" do |haproxy_dr1|
+			haproxy_dr1.vm.provider "virtualbox" do |vb|
+				vb.name = vm_name2
+			end
 			haproxy_dr1.vm.hostname = vm_name2
 			haproxy_dr1.vm.network "public_network", bridge: "#{sNET}", ip: "#{sCLUSTERA_sIP}"
 			# haproxy_dr1.vm.network "forwarded_port", guest: 80, host: "48080", id: "#{vm_name2}"
@@ -110,6 +113,9 @@ SCRIPT
 		# // CONSUL Server Nodes
 		(1..iCLUSTERA_C).each do |iY|
 			config.vm.define vm_name="#{CLUSTERA_HOSTNAME_PREFIX}consul#{iY}" do |consul_node|
+				consul_node.vm.provider "virtualbox" do |vb|
+					vb.name = vm_name
+				end
 				consul_node.vm.hostname = vm_name
 				consul_node.vm.network "public_network", bridge: "#{sNET}", ip: "#{sCLUSTERA_IP_CLASS_D}.#{iCLUSTERA_IP_CONSUL_CLASS_D+iY}"
 				# consul_node.vm.network "forwarded_port", guest: 80, host: "5818#{iY}", id: "#{vm_name}"
@@ -125,6 +131,9 @@ SCRIPT
 	# // VAULT Server Nodes & Consul Clients.
 	(1..iCLUSTERA_N).each do |iX|
 		config.vm.define vm_name="#{CLUSTERA_HOSTNAME_PREFIX}vault#{iX}" do |vault_node|
+			vault_node.vm.provider "virtualbox" do |vb|
+				vb.name = vm_name
+			end
 			vault_node.vm.hostname = vm_name
 			vault_node.vm.network "public_network", bridge: "#{sNET}", ip: "#{sCLUSTERA_IP_CLASS_D}.#{iCLUSTERA_IP_VAULT_CLASS_D-iX}"
 			vault_node.vm.network "public_network", bridge: "#{sNET}", ip: "#{sCLUSTERA_IP_CLASS_D}.#{iCLUSTERA_IP_VAULT_CLASS_D2-iX}", :adapter => 3, :name => 'eth2'
@@ -238,6 +247,9 @@ SCRIPT
 	# // B B B B B B B ------ CLUSTER B ------ CLUSTER B ------ B B B B B B B B
 	if iCLUSTERB_N > 0 && bCLUSTERA_LB then  # // HAProxy Host
 		config.vm.define vm_name3="#{sCLUSTERB_HAP_NAME}" do |haproxy_dr2|
+                        haproxy_dr2.vm.provider "virtualbox" do |vb|
+                                vb.name = vm_name3
+                        end
 			haproxy_dr2.vm.hostname = vm_name3
 			haproxy_dr2.vm.network "public_network", bridge: "#{sNET}", ip: "#{sCLUSTERB_sIP}"
 			# haproxy_dr2.vm.network "forwarded_port", guest: 80, host: "48080", id: "#{vm_name2}"
@@ -265,6 +277,9 @@ SCRIPT
 		# // CONSUL Server Nodes
 		(1..iCLUSTERB_C).each do |iY|
 			config.vm.define vm_name="#{CLUSTERB_HOSTNAME_PREFIX}consul#{iY}" do |consul_node|
+                                consul_node.vm.provider "virtualbox" do |vb|
+                                        vb.name = vm_name
+                                end
 				consul_node.vm.hostname = vm_name
 				consul_node.vm.network "public_network", bridge: "#{sNET}", ip: "#{sCLUSTERB_IP_CLASS_D}.#{iCLUSTERB_IP_CONSUL_CLASS_D+iY}"
 				# consul_node.vm.network "forwarded_port", guest: 80, host: "5918#{iY}", id: "#{vm_name}"
@@ -279,6 +294,9 @@ SCRIPT
 	# // VAULT Server Nodes & Consul Clients.
 	(1..iCLUSTERB_N).each do |iX|
 		config.vm.define vm_name="#{CLUSTERB_HOSTNAME_PREFIX}vault#{iX}" do |vault_node|
+                        vault_node.vm.provider "virtualbox" do |vb|
+                                vb.name = vm_name
+                        end
 			vault_node.vm.hostname = vm_name
 			vault_node.vm.network "public_network", bridge: "#{sNET}", ip: "#{sCLUSTERB_IP_CLASS_D}.#{iCLUSTERB_IP_VAULT_CLASS_D-iX}"
 			vault_node.vm.network "public_network", bridge: "#{sNET}", ip: "#{sCLUSTERB_IP_CLASS_D}.#{iCLUSTERB_IP_VAULT_CLASS_D2-iX}", :adapter => 3, :name => 'eth2'

@@ -6,8 +6,8 @@ set -eu ; # abort this script when a command fails or an unset variable is used.
 # // FOR LINUX BINARIES SEE: https://haproxy.debian.net/
 if [[ $(uname -ar) == *"Debian"* ]] ; then
 	if ! [[ -s /etc/apt/sources.list.d/haproxy.list ]] ; then
-		curl -s https://haproxy.debian.net/bernat.debian.org.gpg | sudo APT_KEY_DONT_WARN_ON_DANGEROUS_USAGE=1 apt-key add - 2>&1 > /dev/null ;
-		printf 'deb http://haproxy.debian.net bullseye-backports-2.6 main\n' > /etc/apt/sources.list.d/haproxy.list ;
+		curl -s https://haproxy.debian.net/bernat.debian.org.gpg | gpg --dearmor > /usr/share/keyrings/haproxy.debian.net.gpg
+		printf 'deb [signed-by=/usr/share/keyrings/haproxy.debian.net.gpg] http://haproxy.debian.net bookworm-backports-2.6 main\n' > /etc/apt/sources.list.d/haproxy.list
 	fi ;
 else
 	printf 'ERROR: OS Not supported for HAProxy install.' ;
