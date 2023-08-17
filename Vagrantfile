@@ -63,8 +63,9 @@ sCLUSTERB_sCERT_BUNDLE='ca_intermediate.pem'
 sERROR_MSG_CONSUL="CONSUL Node count can NOT be zero (0). Set to: 3, 5, 7 , 11, etc."
 
 Vagrant.configure("2") do |config|
+	#config.ssh.insert_key = false
 	config.vm.post_up_message = ""
-	config.vm.box = "debian/bookworm64"
+	config.vm.box = "aphorise/debian12"
 	config.vm.box_check_update = false  # // disabled to reduce verbosity - better enabled
 	#config.vm.box_version = "12.20220328.1"  # // Debian tested version.
 
@@ -72,11 +73,6 @@ Vagrant.configure("2") do |config|
 		v.memory = 1024  # // RAM / Memory
 		v.cpus = 1  # // CPU Cores / Threads
 		v.check_guest_additions = false  # // disable virtualbox guest additions (no default warning message)
-	end
-
-	# // ESSENTIALS PACKAGES INSTALL & SETUP
-	config.vm.provision "shell" do |s|
-		 s.path = "#{sPTH}/1.install_commons.sh"
 	end
 
 	# // -----------------------------------------------------------------------
@@ -147,13 +143,6 @@ SCRIPT
 				vault_node.vm.provision "shell", inline: $script
 			end
 
-			vault_node.vm.provision "file", source: "#{sPTH}/vault/3.install_hsm.sh", destination: "#{sHOME}/install_hsm.sh"
-			$script = <<-SCRIPT
-chmod +x #{sHOME}/install_hsm.sh
-/bin/bash -c '#{sHOME}/install_hsm.sh'
-SCRIPT
-			vault_node.vm.provision "shell", inline: $script
-
 
 			if ! bCLUSTERA_LB then
 				# // ORDERED: Copy certs & ssh private keys before setup from vault1 / CA source generating.
@@ -161,7 +150,7 @@ SCRIPT
 					vault_node.vm.provision "file", source: ".vagrant/machines/#{CLUSTERA_HOSTNAME_PREFIX}vault1/virtualbox/private_key", destination: "#{sHOME}/.ssh/id_rsa2"
 					$script = <<-SCRIPT
 ssh-keyscan #{sCLUSTERA_IP_CA_NODE} 2>/dev/null >> #{sHOME}/.ssh/known_hosts ; chown #{sVUSER}:#{sVUSER} -R #{sHOME}/.ssh ;
-su -l #{sVUSER} -c \"rsync -qva --rsh='ssh -i #{sHOME}/.ssh/id_rsa2' #{sVUSER}@#{sCLUSTERA_IP_CA_NODE}:~/vault#{iX}* :~/#{sCA_CERT} :~/vault_init.json #{sHOME}/.\"
+su -l #{sVUSER} -c \"rsync -qva --rsh='ssh -i #{sHOME}/.ssh/id_rsa2' #{sVUSER}@#{sCLUSTERA_IP_CA_NODE}:~/vault#{iX}* :~/#{sCA_CERT} :~/vault_init.json #{sHOME}/.\" 2>&1>/dev/null
 SCRIPT
 					vault_node.vm.provision "shell", inline: $script
 				end
@@ -169,7 +158,7 @@ SCRIPT
 				vault_node.vm.provision "file", source: ".vagrant/machines/#{sCLUSTERA_HAP_NAME}/virtualbox/private_key", destination: "#{sHOME}/.ssh/id_rsa2"
 				$script = <<-SCRIPT
 ssh-keyscan #{sCLUSTERA_sIP} 2>/dev/null >> #{sHOME}/.ssh/known_hosts ; chown #{sVUSER}:#{sVUSER} -R #{sHOME}/.ssh ;
-su -l #{sVUSER} -c \"rsync -qva --rsh='ssh -i #{sHOME}/.ssh/id_rsa2' #{sVUSER}@#{sCLUSTERA_sIP}:~/vault#{iX}* :~/#{sCA_CERT} #{sHOME}/.\"
+su -l #{sVUSER} -c \"rsync -qva --rsh='ssh -i #{sHOME}/.ssh/id_rsa2' #{sVUSER}@#{sCLUSTERA_sIP}:~/vault#{iX}* :~/#{sCA_CERT} #{sHOME}/.\" 2>&1>/dev/null
 SCRIPT
 				vault_node.vm.provision "shell", inline: $script
 
@@ -177,14 +166,14 @@ SCRIPT
 					vault_node.vm.provision "file", source: ".vagrant/machines/#{CLUSTERA_HOSTNAME_PREFIX}vault1/virtualbox/private_key", destination: "#{sHOME}/.ssh/id_rsa1"
 					$script = <<-SCRIPT
 ssh-keyscan #{sCLUSTERA_sIP_VAULT_LEADER} 2>/dev/null >> #{sHOME}/.ssh/known_hosts ; chown #{sVUSER}:#{sVUSER} -R #{sHOME}/.ssh ;
-su -l #{sVUSER} -c \"rsync -qva --rsh='ssh -i #{sHOME}/.ssh/id_rsa1' #{sVUSER}@#{sCLUSTERA_sIP_VAULT_LEADER}:~/vault_init.json #{sHOME}/.\"
+su -l #{sVUSER} -c \"rsync -qva --rsh='ssh -i #{sHOME}/.ssh/id_rsa1' #{sVUSER}@#{sCLUSTERA_sIP_VAULT_LEADER}:~/vault_init.json #{sHOME}/.\" 2>&1>/dev/null
 SCRIPT
 				vault_node.vm.provision "shell", inline: $script
 				end
 			end
 
 			# // ORDERED: setup certs.
-			vault_node.vm.provision "file", source: "#{sPTH}/2.install_tls_ca_certs.sh", destination: "#{sHOME}/install_tls_ca_certs.sh"			
+			vault_node.vm.provision "file", source: "#{sPTH}/2.install_tls_ca_certs.sh", destination: "#{sHOME}/install_tls_ca_certs.sh"
 			$script = <<-SCRIPT
 chmod +x #{sHOME}/install_tls_ca_certs.sh
 /bin/bash -c 'IP_VAULT1=#{sCLUSTERA_IP_CLASS_D}.#{iCLUSTERA_IP_VAULT_CLASS_D-iX} FQDN_VAULT1=#{CLUSTERA_HOSTNAME_PREFIX}vault1 #{sHOME}/install_tls_ca_certs.sh #{ bCLUSTERA_LB == false && iX == 1 ? iCLUSTERA_N : '' }'
@@ -310,13 +299,6 @@ SCRIPT
 				vault_node.vm.provision "shell", inline: $script
 			end
 
-			vault_node.vm.provision "file", source: "#{sPTH}/vault/3.install_hsm.sh", destination: "#{sHOME}/install_hsm.sh"
-			$script = <<-SCRIPT
-chmod +x #{sHOME}/install_hsm.sh
-/bin/bash -c '#{sHOME}/install_hsm.sh'
-SCRIPT
-			vault_node.vm.provision "shell", inline: $script
-
 			if ! bCLUSTERB_LB then
 				# // ORDERED: Copy certs & ssh private keys before setup from vault1 / CA source generating.
 				if iX > 1 then
@@ -328,8 +310,8 @@ ssh-keyscan #{sCLUSTERA_IP_CA_NODE} 2>/dev/null >> #{sHOME}/.ssh/known_hosts ;
 chown #{sVUSER}:#{sVUSER} -R #{sHOME}/.ssh ;
 chmod 600 #{sHOME}/.ssh/id_rsa1
 chmod 600 #{sHOME}/.ssh/id_rsa2
-su -l #{sVUSER} -c \"rsync -qva --rsh='ssh -i #{sHOME}/.ssh/id_rsa1' #{sVUSER}@#{sCLUSTERB_IP_CA_NODE}:~/vault#{iX}* :~/#{sCA_CERT} :~/cacert2.crt #{sHOME}/.\"
-su -l #{sVUSER} -c \"rsync -qva --rsh='ssh -i #{sHOME}/.ssh/id_rsa2' #{sVUSER}@#{sCLUSTERA_IP_CA_NODE}:~/vault_init.json #{sHOME}/.\"
+su -l #{sVUSER} -c \"rsync -qva --rsh='ssh -i #{sHOME}/.ssh/id_rsa1' #{sVUSER}@#{sCLUSTERB_IP_CA_NODE}:~/vault#{iX}* :~/#{sCA_CERT} :~/cacert2.crt #{sHOME}/. \" 2>&1>/dev/null
+su -l #{sVUSER} -c \"rsync -qva --rsh='ssh -i #{sHOME}/.ssh/id_rsa2' #{sVUSER}@#{sCLUSTERA_IP_CA_NODE}:~/vault_init.json #{sHOME}/. \" 2>&1>/dev/null
 SCRIPT
 					vault_node.vm.provision "shell", inline: $script
 				else
@@ -339,9 +321,9 @@ ssh-keyscan #{sCLUSTERB_IP_CA_NODE} 2>/dev/null >> #{sHOME}/.ssh/known_hosts ;
 ssh-keyscan #{sCLUSTERA_IP_CA_NODE} 2>/dev/null >> #{sHOME}/.ssh/known_hosts ;
 chown #{sVUSER}:#{sVUSER} -R #{sHOME}/.ssh ;
 chmod 600 #{sHOME}/.ssh/id_rsa1
-su -l #{sVUSER} -c \"rsync -qva --rsh='ssh -i #{sHOME}/.ssh/id_rsa1' #{sVUSER}@#{sCLUSTERA_IP_CA_NODE}:~/*token_dr*.json #{sHOME}/.\"
-su -l #{sVUSER} -c \"rsync -qva --rsh='ssh -i #{sHOME}/.ssh/id_rsa1' #{sVUSER}@#{sCLUSTERA_IP_CA_NODE}:~/#{sCA_CERT} #{sHOME}/cacert2.crt\"
-su -l #{sVUSER} -c \"rsync -qva --rsh='ssh -i #{sHOME}/.ssh/id_rsa1' #{sVUSER}@#{sCLUSTERA_IP_CA_NODE}:~/vault_init.json #{sHOME}/.\"
+su -l #{sVUSER} -c \"rsync -qva --rsh='ssh -i #{sHOME}/.ssh/id_rsa1' #{sVUSER}@#{sCLUSTERA_IP_CA_NODE}:~/*token_dr*.json #{sHOME}/. \" 2>&1>/dev/null
+su -l #{sVUSER} -c \"rsync -qva --rsh='ssh -i #{sHOME}/.ssh/id_rsa1' #{sVUSER}@#{sCLUSTERA_IP_CA_NODE}:~/#{sCA_CERT} #{sHOME}/cacert2.crt \" 2>&1>/dev/null
+su -l #{sVUSER} -c \"rsync -qva --rsh='ssh -i #{sHOME}/.ssh/id_rsa1' #{sVUSER}@#{sCLUSTERA_IP_CA_NODE}:~/vault_init.json #{sHOME}/. \" 2>&1>/dev/null
 SCRIPT
 					vault_node.vm.provision "shell", inline: $script
 				end
@@ -360,26 +342,26 @@ chown #{sVUSER}:#{sVUSER} -R #{sHOME}/.ssh ;
 chmod 600 #{sHOME}/.ssh/id_rsa1
 chmod 600 #{sHOME}/.ssh/id_rsa2
 chmod 600 #{sHOME}/.ssh/id_rsa3
-su -l #{sVUSER} -c \"rsync -qva --rsh='ssh -i #{sHOME}/.ssh/id_rsa1' #{sVUSER}@#{sCLUSTERA_sIP}:~/#{sCA_CERT} #{sHOME}/cacert2.crt\"
-su -l #{sVUSER} -c \"rsync -qva --rsh='ssh -i #{sHOME}/.ssh/id_rsa2' #{sVUSER}@#{sCLUSTERB_sIP}:~/vault#{iX}* :~/#{sCA_CERT} #{sHOME}/.\"
-su -l #{sVUSER} -c \"rsync -qva --rsh='ssh -i #{sHOME}/.ssh/id_rsa3' #{sVUSER}@#{sCLUSTERA_sIP_VAULT_LEADER}:~/*token_dr*.json #{sHOME}/.\"
+su -l #{sVUSER} -c \"rsync -qva --rsh='ssh -i #{sHOME}/.ssh/id_rsa1' #{sVUSER}@#{sCLUSTERA_sIP}:~/#{sCA_CERT} #{sHOME}/cacert2.crt \" 2>&1>/dev/null
+su -l #{sVUSER} -c \"rsync -qva --rsh='ssh -i #{sHOME}/.ssh/id_rsa2' #{sVUSER}@#{sCLUSTERB_sIP}:~/vault#{iX}* :~/#{sCA_CERT} #{sHOME}/. \" 2>&1>/dev/null
+su -l #{sVUSER} -c \"rsync -qva --rsh='ssh -i #{sHOME}/.ssh/id_rsa3' #{sVUSER}@#{sCLUSTERA_sIP_VAULT_LEADER}:~/*token_dr*.json #{sHOME}/. \" 2>&1>/dev/null
 SCRIPT
 				vault_node.vm.provision "shell", inline: $script
 
 				if iX == 1 then
 					$script = <<-SCRIPT
-su -l #{sVUSER} -c \"rsync -qva --rsh='ssh -i #{sHOME}/.ssh/id_rsa3' #{sVUSER}@#{sCLUSTERA_sIP_VAULT_LEADER}:~/vault_init.json #{sHOME}/vault_init_primary.json\"
+su -l #{sVUSER} -c \"rsync -qva --rsh='ssh -i #{sHOME}/.ssh/id_rsa3' #{sVUSER}@#{sCLUSTERA_sIP_VAULT_LEADER}:~/vault_init.json #{sHOME}/vault_init_primary.json\" 2>&1>/dev/null
 SCRIPT
 				else
 					$script = <<-SCRIPT
-su -l #{sVUSER} -c \"rsync -qva --rsh='ssh -i #{sHOME}/.ssh/id_rsa3' #{sVUSER}@#{sCLUSTERA_sIP_VAULT_LEADER}:~/vault_init.json #{sHOME}/.\"
+su -l #{sVUSER} -c \"rsync -qva --rsh='ssh -i #{sHOME}/.ssh/id_rsa3' #{sVUSER}@#{sCLUSTERA_sIP_VAULT_LEADER}:~/vault_init.json #{sHOME}/.\" 2>&1>/dev/null
 SCRIPT
 				end
 				vault_node.vm.provision "shell", inline: $script
 			end
 
 			# // ORDERED: setup certs.
-			vault_node.vm.provision "file", source: "#{sPTH}/2.install_tls_ca_certs.sh", destination: "#{sHOME}/install_tls_ca_certs.sh"			
+			vault_node.vm.provision "file", source: "#{sPTH}/2.install_tls_ca_certs.sh", destination: "#{sHOME}/install_tls_ca_certs.sh"
 			$script = <<-SCRIPT
 chmod +x #{sHOME}/install_tls_ca_certs.sh
 /bin/bash -c 'IP_VAULT1=#{sCLUSTERB_IP_CLASS_D}.#{iCLUSTERB_IP_VAULT_CLASS_D-iX} FQDN_VAULT1=#{CLUSTERB_HOSTNAME_PREFIX}vault1 #{sHOME}/install_tls_ca_certs.sh #{ bCLUSTERB_LB == false && iX == 1 ? iCLUSTERB_N : '' }'

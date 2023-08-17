@@ -24,7 +24,7 @@ EXAMPLES:
 		SETUP='server' IP_WAN_INTERFACE='eth0' ${0##*/} ;
 		# Use a differnt interface ip for vault cluster_address binding.
 
-${0##*/} 0.0.8haproxy_dr-v1.10.4					28 June 2022
+${0##*/} 0.0.9haproxy_dr-v1.14.1					17 August 2023
 """ ;
 fi ;
 
@@ -82,8 +82,6 @@ if [[ ! ${IP_LB+x} && ${IP_LB_INTERFACE} != "" ]]; then
 	else
 		if [[ ${VAULT_API_ADDR+x} ]] ; then sudo ip route add "$(printf ${VAULT_API_ADDR} | cut -d'/' -f3 | cut -d':' -f1)" via ${IP_LB} dev ${IP_LB_INTERFACE} ; fi ;
 	fi ;
-	
-
 fi ;
 
 if [[ ! ${IP_WAN+x} ]]; then
@@ -333,7 +331,7 @@ function sudoSetup()
 	# // Enable auto complete
 	set +e ;
 	vault -autocomplete-install 2>/dev/null && complete -C ${PATH_BINARY} vault 2>/dev/null ;
-	su -l ${USER_MAIN} -c "vault -autocomplete-install 2>/dev/null && complete -C ${PATH_BINARY} vault 2>/dev/null;"
+	su -l ${USER_MAIN} -c "vault -autocomplete-install 2>/dev/null && complete -C ${PATH_BINARY} vault 2>/dev/null;" 2>&1>/dev/null
 	set -e ;
 
 	# // SystemD for service / startup
@@ -477,6 +475,33 @@ raw_storage_endpoint = true
 		pOUT "WAITING ${SLEEP_TIME} seconds for Vault service to be ready after a start." ;
 		sleep ${SLEEP_TIME} ;
 	fi ;
+
+	if [[ -s /home/${USER_MAIN}/.config/neofetch/config.conf ]] && ! [[ -s ${PATH_VAULT}/logo.txt ]] ; then
+		printf '''
+${c3} ◥███████████████████◤
+  ◥██████ █ █ ██████◤
+   ◥███████████████◤
+    ◥████ █ █ ████◤
+     ◥███████████◤
+      ◥██ █ █ ██◤
+       ◥███████◤
+        ◥██ ██◤
+          ◥█◤
+${c5}HashiCorp  ${c3}▼  ${c6} Vault''' > ${PATH_VAULT}/logo.txt ;
+		printf "neofetch --source ${PATH_VAULT}/logo.txt --ascii_colors 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15" > /etc/profile.d/neofetch.sh ;
+		sed -i 's/info title/#info title/g' /home/${USER_MAIN}/.config/neofetch/config.conf
+		sed -i 's/info "Packages"/#info "Packages"/g' /home/${USER_MAIN}/.config/neofetch/config.conf
+		sed -i 's/info "Resolution"/#info "Resolution/g' /home/${USER_MAIN}/.config/neofetch/config.conf
+		sed -i 's/info "GPU"/#info "GPU"/g' /home/${USER_MAIN}/.config/neofetch/config.conf
+		sed -i 's/info "Terminal" term/#info "Terminal" term/g' /home/${USER_MAIN}/.config/neofetch/config.conf
+		sed -i 's/info title/#info title/g' /home/${USER_MAIN}/.config/neofetch/config.conf
+		sed -i 's/# info "Disk"/info "Disk"/g' /home/${USER_MAIN}/.config/neofetch/config.conf
+		sed -i 's/# info "Local IP"/info "Local IP"/g' /home/${USER_MAIN}/.config/neofetch/config.conf
+		sed -i 's/gap=3/gap=0/g' /home/${USER_MAIN}/.config/neofetch/config.conf
+		sed -i 's/memory_percent="off"/memory_percent="on"/g' /home/${USER_MAIN}/.config/neofetch/config.conf
+		sed -i 's/info cols/#info cols\n    prin "\\n ${c0}▉${c2}▉${c3}▉${c4}▉${c5}▉${c6}▉${c1}▉${reset}${c15}▉${c2}▉${c3}▉${c4}▉${c5}▉${c6}▉${c1}▉${reset}${c15}▉"/g' /home/${USER_MAIN}/.config/neofetch/config.conf
+	fi ;
+
 }
 
 

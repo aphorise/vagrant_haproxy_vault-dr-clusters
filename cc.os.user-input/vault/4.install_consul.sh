@@ -33,7 +33,7 @@ EXAMPLES:
 		SETUP='server' LICENSE='...' IPS='"10.0.100.1", "10.0.100.2", "10.0.100.3"' ${0##*/} ;
 		# use IPs for Consul config join settings & adaptor IP details.
 
-${0##*/} 0.0.2					July 2020
+${0##*/} 0.0.3					August 2023
 """ ;
 fi ;
 
@@ -209,7 +209,7 @@ function sudoSetup()
 	# // Enable auto complete
 	set +e
 	consul -autocomplete-install 2>/dev/null && complete -C ${PATH_BINARY} consul 2>/dev/null ;
-	su -l ${USER_MAIN} -c "consul -autocomplete-install 2>/dev/null && complete -C ${PATH_BINARY} consul 2>/dev/null;"
+	su -l ${USER_MAIN} -c "consul -autocomplete-install 2>/dev/null && complete -C ${PATH_BINARY} consul 2>/dev/null;" 2>&1>/dev/null
 	set -e
 
 	# // SystemD for service / startup
@@ -297,6 +297,31 @@ retry_join = ['"${IPS}"']
 			pOUT "CONSUL LICNESE: Already present & ${LICENSE_EXP}" ;
 		fi ;
 	fi ;
+
+        if [[ -s /home/${USER_MAIN}/.config/neofetch/config.conf ]] && ! [[ -s ${PATH_CONSUL}/logo.txt ]] ; then
+                printf '''
+${c1}    █████████◤
+${c1}  ██          ${c5}HashiCorp
+${c1}██    ,gPPRg,    ◉
+${c1}██   8)     (8  ◉ ◉
+${c1}██   Yb     dP ◉
+${c1}██    "8ggg8"   ◉ ◉
+${c1} ███             ◉
+${c1}   ███████████◤ ${c6}Consul''' > ${PATH_CONSUL}/logo.txt ;
+                printf "neofetch --source ${PATH_CONSUL}/logo.txt --ascii_colors 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15" > /etc/profile.d/neofetch.sh ;
+		sed -i 's/info title/#info title/g' /home/${USER_MAIN}/.config/neofetch/config.conf
+		sed -i 's/info underline/#info underline/g' /home/${USER_MAIN}/.config/neofetch/config.conf
+		sed -i 's/info "Packages"/#info "Packages"/g' /home/${USER_MAIN}/.config/neofetch/config.conf
+		sed -i 's/info "Resolution"/#info "Resolution/g' /home/${USER_MAIN}/.config/neofetch/config.conf
+		sed -i 's/info "GPU"/#info "GPU"/g' /home/${USER_MAIN}/.config/neofetch/config.conf
+		sed -i 's/info "Terminal" term/#info "Terminal" term/g' /home/${USER_MAIN}/.config/neofetch/config.conf
+		sed -i 's/info title/#info title/g' /home/${USER_MAIN}/.config/neofetch/config.conf
+		sed -i 's/# info "Disk"/info "Disk"/g' /home/${USER_MAIN}/.config/neofetch/config.conf
+		sed -i 's/# info "Local IP"/info "Local IP"/g' /home/${USER_MAIN}/.config/neofetch/config.conf
+		sed -i 's/gap=3/gap=0/g' /home/${USER_MAIN}/.config/neofetch/config.conf
+		sed -i 's/memory_percent="off"/memory_percent="on"/g' /home/${USER_MAIN}/.config/neofetch/config.conf
+		sed -i 's/info cols/#info cols\n    prin "\\n ${c0}▉${c2}▉${c3}▉${c4}▉${c5}▉${c6}▉${c1}▉${reset}${c15}▉${c2}▉${c3}▉${c4}▉${c5}▉${c6}▉${c1}▉${reset}${c15}▉"/g' /home/${USER_MAIN}/.config/neofetch/config.conf
+        fi ;
 }
 URL="${URL}${FILE}" ;
 donwloadUnpack && if [[ ${SETUP,,} == *'client'* || ${SETUP,,} == *'server'* ]]; then sudoSetup ; fi ;
