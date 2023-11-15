@@ -6,8 +6,8 @@ This repo is a mock example of two Vault clusters which are serviced by their re
 
 It's possible to use [Vault HSM Enterprise](https://www.vaultproject.io/docs/enterprise/hsm) with [SoftHSM](https://www.opendnssec.org/softhsm/) as an [auto-unseal type is possible](https://www.vaultproject.io/docs/configuration/seal/pkcs11) as detailed below.
 
-:memo: Past tests on **X86 / AMD64** hosts with Windows (10 & 11) & Linux (Debian 11 & macOS 12.4) using VirtualBox 6.1.34 r150636 + Vagrant 2.2.19 & earlier. :memo:
- 
+:memo: Past tests on **X86 / AMD64** hosts with Windows (10 & 11) & Linux (Debian 11 & macOS 12.4) using VirtualBox: 7.0.10r158379 + Vagrant 2.3.7 & earlier. :memo:
+
 
 ## Makeup & Concept
 

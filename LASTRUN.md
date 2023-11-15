@@ -7,18 +7,16 @@ reset && time vagrant up --provider virtualbox ;
 Version & brief details of last run near to the time of last commit.
 
 ```
-real	5m16.617s  # 4m26.931s
-user	0m6.722s   # 0m6.755s
-sys	0m7.915s   # 0m7.892s
+real	3m2.490s  # 5m16.617s  # 4m26.931s
 
-2023-08-14 @ 16:12 ;
+2023-11-15 @ 12:11 ;
 Linux 6.1.0-11-amd64 #1 SMP PREEMPT_DYNAMIC Debian 6.1.38-4 (2023-08-08) GNU/Linux Description:	Debian GNU/Linux 12 (bookworm) ;
-CPU: 8-core AMD Ryzen 7 7735HS with Radeon Graphics (-MT MCP-) speed/min/max: 1903/1600/4828 MHz;
+CPU: 8-core AMD Ryzen 7 7735HS with Radeon Graphics (-MT MCP-) speed/min/max: 1991/1600/4828 MHz;
 VirtualBox: 7.0.10r158379 ;
 Vagrant 2.3.7 ;
 
 Linux 6.1.0-10-amd64 #1 SMP PREEMPT_DYNAMIC Debian 6.1.38-1 (2023-07-14) GNU/Linux Description:	Debian GNU/Linux 12 (bookworm) ;
-Vault v1.14.1+ent.hsm (1b45cddc7a6e5a6b2c7b9f3fe988819d0c4b2dc5), built 2023-07-21T23:04:42Z (cgo);
+Vault v1.15.2+ent.hsm (8b6cdc3100961bfd91cf03cfb5eaa0a2448199b5), built 2023-11-07T13:52:33Z (cgo);
 ```
 
 

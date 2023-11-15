@@ -8,4 +8,6 @@ seal "pkcs11" {
 	generate_key	= "true"
 	#mechanism 	= "0x1087"  # // may be needed with some hw
 	#hmac_mechanism = "0x0251"  # // may be needed with some hw
+#	priority = 1
+#	name	=	"pkcs11-1"
 }
