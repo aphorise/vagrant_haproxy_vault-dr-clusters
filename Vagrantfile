@@ -32,9 +32,10 @@ sCLUSTERB_IPS=''  # // Consul B - IPs constructed based on IP D class + instance
 sCLUSTERA_sIP="#{sCLUSTERA_IP_CLASS_D}.254"  # // HAProxy Load-Balancer IP
 sCLUSTERB_sIP="#{sCLUSTERB_IP_CLASS_D}.253"  # // HAProxy Load-Balancer IP
 
-VV1='VAULT_VERSION='+'1.15.2+ent.hsm'  # VV1='' to Install Latest OSS
+VV1=''  # VV1='VAULT_VERSION='+'1.15.4+ent'  #  for versions specific
+#VV1='VAULT_VERSION='+'1.15.4+ent'  # VV1='' to Install Latest OSS
 VR1="VAULT_RAFT_JOIN=https://#{sCLUSTERA_sIP_VAULT_LEADER}:8200"  # raft join script determines applicability
-VV2='VAULT_VERSION='+'1.15.1+ent.hsm'  # VV1='' to Install Latest OSS
+VV2='VAULT_VERSION='+'1.15.4+ent'  # VV1='' to Install Latest OSS
 VR2="VAULT_RAFT_JOIN=https://#{sCLUSTERB_sIP_VAULT_LEADER}:8200"  # raft join script determines applicability
 
 CLUSTERA_VAULT_NAME = 'DR-Primary'  # // Vault A Cluster Name
@@ -62,26 +63,40 @@ sCLUSTERB_sCERT_BUNDLE='ca_intermediate.pem'
 
 sERROR_MSG_CONSUL="CONSUL Node count can NOT be zero (0). Set to: 3, 5, 7 , 11, etc."
 
+## Patch UI to hide certian detailed messages making Vagrant outputs more concise
+class Vagrant::UI::Colored
+	def say(type, message, opts={})
+	aMSG_SKIP = [ 'Verifying vmnet devices', 'Configuring network adapters within', 'Preparing network adapters', 'Forwarding ports', 'Fixed port collision for 22', 'Running provisioner: file...', 'Running provisioner: shell...' ]
+	if aMSG_SKIP.any? { |s| message.include? s } ; return ; end
+		aMSG_EXCLUDE = [ 'Verifying vmnet devices', 'Preparing network adapters', 'Forwarding ports', '-- 22 =>', 'SSH address:', 'SSH username', 'SSH auth method:', 'Vagrant insecure key detected.', 'this with a newly generated keypair', 'Inserting generated public', 'Removing insecure key from', 'Key inserted!']
+		# puts type," --- ",message
+		if aMSG_EXCLUDE.any? { |s| message.include? s } ## puts type, " --- ", message
+			super(type, message, opts.merge(hide_detail: true))
+		else
+			super(type, message, opts.merge(hide_detail: false))
+		end
+	end
+end
+
 Vagrant.configure("2") do |config|
 	#config.ssh.insert_key = false
 	config.vm.post_up_message = ""
-	config.vm.box = "aphorise/debian12"
+	config.vm.box = "aphorise/debian12-arm64"
 	config.vm.box_check_update = false  # // disabled to reduce verbosity - better enabled
-	#config.vm.box_version = "12.20220328.1"  # // Debian tested version.
+	config.vm.box_version = "0.0.3"  # // Debian tested version.
 
-	config.vm.provider "virtualbox" do |v|
-		v.memory = 2048  # // RAM / Memory
-		v.cpus = 2  # // CPU Cores / Threads
-		v.check_guest_additions = false  # // disable virtualbox guest additions (no default warning message)
+	config.vm.provider "vmware_desktop" do |v|
+		v.vmx["memsize"] = "2048"
+		v.vmx["numvcpus"] = "2"
+		v.vmx["cpuid.coresPerSocket"] = "1"
+		v.vmx["ethernet0.pcislotnumber"] = "160"
+		v.allowlist_verified = true
 	end
 
 	# // -----------------------------------------------------------------------
 	# // A A A A A A A ------ CLUSTER A ------ CLUSTER A ------ A A A A A A A A
 	if bCLUSTERA_LB then  # // HAProxy Host
 		config.vm.define vm_name2="#{sCLUSTERA_HAP_NAME}" do |haproxy_dr1|
-			haproxy_dr1.vm.provider "virtualbox" do |vb|
-				vb.name = vm_name2
-			end
 			haproxy_dr1.vm.hostname = vm_name2
 			haproxy_dr1.vm.network "public_network", bridge: "#{sNET}", ip: "#{sCLUSTERA_sIP}"
 			# haproxy_dr1.vm.network "forwarded_port", guest: 80, host: "48080", id: "#{vm_name2}"
@@ -109,9 +124,6 @@ SCRIPT
 		# // CONSUL Server Nodes
 		(1..iCLUSTERA_C).each do |iY|
 			config.vm.define vm_name="#{CLUSTERA_HOSTNAME_PREFIX}consul#{iY}" do |consul_node|
-				consul_node.vm.provider "virtualbox" do |vb|
-					vb.name = vm_name
-				end
 				consul_node.vm.hostname = vm_name
 				consul_node.vm.network "public_network", bridge: "#{sNET}", ip: "#{sCLUSTERA_IP_CLASS_D}.#{iCLUSTERA_IP_CONSUL_CLASS_D+iY}"
 				# consul_node.vm.network "forwarded_port", guest: 80, host: "5818#{iY}", id: "#{vm_name}"
@@ -127,9 +139,6 @@ SCRIPT
 	# // VAULT Server Nodes & Consul Clients.
 	(1..iCLUSTERA_N).each do |iX|
 		config.vm.define vm_name="#{CLUSTERA_HOSTNAME_PREFIX}vault#{iX}" do |vault_node|
-			vault_node.vm.provider "virtualbox" do |vb|
-				vb.name = vm_name
-			end
 			vault_node.vm.hostname = vm_name
 			vault_node.vm.network "public_network", bridge: "#{sNET}", ip: "#{sCLUSTERA_IP_CLASS_D}.#{iCLUSTERA_IP_VAULT_CLASS_D-iX}"
 			vault_node.vm.network "public_network", bridge: "#{sNET}", ip: "#{sCLUSTERA_IP_CLASS_D}.#{iCLUSTERA_IP_VAULT_CLASS_D2-iX}", :adapter => 3, :name => 'eth2'
@@ -147,7 +156,7 @@ SCRIPT
 			if ! bCLUSTERA_LB then
 				# // ORDERED: Copy certs & ssh private keys before setup from vault1 / CA source generating.
 				if iX > 1 then
-					vault_node.vm.provision "file", source: ".vagrant/machines/#{CLUSTERA_HOSTNAME_PREFIX}vault1/virtualbox/private_key", destination: "#{sHOME}/.ssh/id_rsa2"
+					vault_node.vm.provision "file", source: ".vagrant/machines/#{CLUSTERA_HOSTNAME_PREFIX}vault1/vmware_desktop/private_key", destination: "#{sHOME}/.ssh/id_rsa2"
 					$script = <<-SCRIPT
 ssh-keyscan #{sCLUSTERA_IP_CA_NODE} 2>/dev/null >> #{sHOME}/.ssh/known_hosts ; chown #{sVUSER}:#{sVUSER} -R #{sHOME}/.ssh ;
 su -l #{sVUSER} -c \"rsync -qva --rsh='ssh -i #{sHOME}/.ssh/id_rsa2' #{sVUSER}@#{sCLUSTERA_IP_CA_NODE}:~/vault#{iX}* :~/#{sCA_CERT} :~/vault_init.json #{sHOME}/.\" 2>&1>/dev/null
@@ -155,7 +164,7 @@ SCRIPT
 					vault_node.vm.provision "shell", inline: $script
 				end
 			else
-				vault_node.vm.provision "file", source: ".vagrant/machines/#{sCLUSTERA_HAP_NAME}/virtualbox/private_key", destination: "#{sHOME}/.ssh/id_rsa2"
+				vault_node.vm.provision "file", source: ".vagrant/machines/#{sCLUSTERA_HAP_NAME}/vmware_desktop/private_key", destination: "#{sHOME}/.ssh/id_rsa2"
 				$script = <<-SCRIPT
 ssh-keyscan #{sCLUSTERA_sIP} 2>/dev/null >> #{sHOME}/.ssh/known_hosts ; chown #{sVUSER}:#{sVUSER} -R #{sHOME}/.ssh ;
 su -l #{sVUSER} -c \"rsync -qva --rsh='ssh -i #{sHOME}/.ssh/id_rsa2' #{sVUSER}@#{sCLUSTERA_sIP}:~/vault#{iX}* :~/#{sCA_CERT} #{sHOME}/.\" 2>&1>/dev/null
@@ -163,7 +172,7 @@ SCRIPT
 				vault_node.vm.provision "shell", inline: $script
 
 				if iX > 1 then
-					vault_node.vm.provision "file", source: ".vagrant/machines/#{CLUSTERA_HOSTNAME_PREFIX}vault1/virtualbox/private_key", destination: "#{sHOME}/.ssh/id_rsa1"
+					vault_node.vm.provision "file", source: ".vagrant/machines/#{CLUSTERA_HOSTNAME_PREFIX}vault1/vmware_desktop/private_key", destination: "#{sHOME}/.ssh/id_rsa1"
 					$script = <<-SCRIPT
 ssh-keyscan #{sCLUSTERA_sIP_VAULT_LEADER} 2>/dev/null >> #{sHOME}/.ssh/known_hosts ; chown #{sVUSER}:#{sVUSER} -R #{sHOME}/.ssh ;
 su -l #{sVUSER} -c \"rsync -qva --rsh='ssh -i #{sHOME}/.ssh/id_rsa1' #{sVUSER}@#{sCLUSTERA_sIP_VAULT_LEADER}:~/vault_init.json #{sHOME}/.\" 2>&1>/dev/null
@@ -236,9 +245,6 @@ SCRIPT
 	# // B B B B B B B ------ CLUSTER B ------ CLUSTER B ------ B B B B B B B B
 	if iCLUSTERB_N > 0 && bCLUSTERA_LB then  # // HAProxy Host
 		config.vm.define vm_name3="#{sCLUSTERB_HAP_NAME}" do |haproxy_dr2|
-                        haproxy_dr2.vm.provider "virtualbox" do |vb|
-                                vb.name = vm_name3
-                        end
 			haproxy_dr2.vm.hostname = vm_name3
 			haproxy_dr2.vm.network "public_network", bridge: "#{sNET}", ip: "#{sCLUSTERB_sIP}"
 			# haproxy_dr2.vm.network "forwarded_port", guest: 80, host: "48080", id: "#{vm_name2}"
@@ -266,9 +272,6 @@ SCRIPT
 		# // CONSUL Server Nodes
 		(1..iCLUSTERB_C).each do |iY|
 			config.vm.define vm_name="#{CLUSTERB_HOSTNAME_PREFIX}consul#{iY}" do |consul_node|
-                                consul_node.vm.provider "virtualbox" do |vb|
-                                        vb.name = vm_name
-                                end
 				consul_node.vm.hostname = vm_name
 				consul_node.vm.network "public_network", bridge: "#{sNET}", ip: "#{sCLUSTERB_IP_CLASS_D}.#{iCLUSTERB_IP_CONSUL_CLASS_D+iY}"
 				# consul_node.vm.network "forwarded_port", guest: 80, host: "5918#{iY}", id: "#{vm_name}"
@@ -283,9 +286,6 @@ SCRIPT
 	# // VAULT Server Nodes & Consul Clients.
 	(1..iCLUSTERB_N).each do |iX|
 		config.vm.define vm_name="#{CLUSTERB_HOSTNAME_PREFIX}vault#{iX}" do |vault_node|
-                        vault_node.vm.provider "virtualbox" do |vb|
-                                vb.name = vm_name
-                        end
 			vault_node.vm.hostname = vm_name
 			vault_node.vm.network "public_network", bridge: "#{sNET}", ip: "#{sCLUSTERB_IP_CLASS_D}.#{iCLUSTERB_IP_VAULT_CLASS_D-iX}"
 			vault_node.vm.network "public_network", bridge: "#{sNET}", ip: "#{sCLUSTERB_IP_CLASS_D}.#{iCLUSTERB_IP_VAULT_CLASS_D2-iX}", :adapter => 3, :name => 'eth2'
@@ -302,8 +302,8 @@ SCRIPT
 			if ! bCLUSTERB_LB then
 				# // ORDERED: Copy certs & ssh private keys before setup from vault1 / CA source generating.
 				if iX > 1 then
-					vault_node.vm.provision "file", source: ".vagrant/machines/#{CLUSTERA_HOSTNAME_PREFIX}vault1/virtualbox/private_key", destination: "#{sHOME}/.ssh/id_rsa2"
-					vault_node.vm.provision "file", source: ".vagrant/machines/#{CLUSTERB_HOSTNAME_PREFIX}vault1/virtualbox/private_key", destination: "#{sHOME}/.ssh/id_rsa1"
+					vault_node.vm.provision "file", source: ".vagrant/machines/#{CLUSTERA_HOSTNAME_PREFIX}vault1/vmware_desktop/private_key", destination: "#{sHOME}/.ssh/id_rsa2"
+					vault_node.vm.provision "file", source: ".vagrant/machines/#{CLUSTERB_HOSTNAME_PREFIX}vault1/vmware_desktop/private_key", destination: "#{sHOME}/.ssh/id_rsa1"
 					$script = <<-SCRIPT
 ssh-keyscan #{sCLUSTERB_IP_CA_NODE} 2>/dev/null >> #{sHOME}/.ssh/known_hosts ;
 ssh-keyscan #{sCLUSTERA_IP_CA_NODE} 2>/dev/null >> #{sHOME}/.ssh/known_hosts ;
@@ -315,7 +315,7 @@ su -l #{sVUSER} -c \"rsync -qva --rsh='ssh -i #{sHOME}/.ssh/id_rsa2' #{sVUSER}@#
 SCRIPT
 					vault_node.vm.provision "shell", inline: $script
 				else
-					vault_node.vm.provision "file", source: ".vagrant/machines/#{CLUSTERA_HOSTNAME_PREFIX}vault1/virtualbox/private_key", destination: "#{sHOME}/.ssh/id_rsa1"
+					vault_node.vm.provision "file", source: ".vagrant/machines/#{CLUSTERA_HOSTNAME_PREFIX}vault1/vmware_desktop/private_key", destination: "#{sHOME}/.ssh/id_rsa1"
 					$script = <<-SCRIPT
 ssh-keyscan #{sCLUSTERB_IP_CA_NODE} 2>/dev/null >> #{sHOME}/.ssh/known_hosts ;
 ssh-keyscan #{sCLUSTERA_IP_CA_NODE} 2>/dev/null >> #{sHOME}/.ssh/known_hosts ;
@@ -329,9 +329,9 @@ SCRIPT
 				end
 			else
 				# // EXTRA's - SSH keys from Cluster-A & CA Certificate.
-				vault_node.vm.provision "file", source: ".vagrant/machines/#{sCLUSTERA_HAP_NAME}/virtualbox/private_key", destination: "#{sHOME}/.ssh/id_rsa1"
-				vault_node.vm.provision "file", source: ".vagrant/machines/#{sCLUSTERB_HAP_NAME}/virtualbox/private_key", destination: "#{sHOME}/.ssh/id_rsa2"
-				vault_node.vm.provision "file", source: ".vagrant/machines/#{CLUSTERA_HOSTNAME_PREFIX}vault1/virtualbox/private_key", destination: "#{sHOME}/.ssh/id_rsa3"
+				vault_node.vm.provision "file", source: ".vagrant/machines/#{sCLUSTERA_HAP_NAME}/vmware_desktop/private_key", destination: "#{sHOME}/.ssh/id_rsa1"
+				vault_node.vm.provision "file", source: ".vagrant/machines/#{sCLUSTERB_HAP_NAME}/vmware_desktop/private_key", destination: "#{sHOME}/.ssh/id_rsa2"
+				vault_node.vm.provision "file", source: ".vagrant/machines/#{CLUSTERA_HOSTNAME_PREFIX}vault1/vmware_desktop/private_key", destination: "#{sHOME}/.ssh/id_rsa3"
 
 				# // Copy DR related tokens from primary / leader cluster.
 				$script = <<-SCRIPT

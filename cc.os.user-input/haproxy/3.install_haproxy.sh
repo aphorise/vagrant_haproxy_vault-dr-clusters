@@ -7,14 +7,14 @@ set -eu ; # abort this script when a command fails or an unset variable is used.
 if [[ $(uname -ar) == *"Debian"* ]] ; then
 	if ! [[ -s /etc/apt/sources.list.d/haproxy.list ]] ; then
 		curl -s https://haproxy.debian.net/bernat.debian.org.gpg | gpg --dearmor > /usr/share/keyrings/haproxy.debian.net.gpg
-		printf 'deb [signed-by=/usr/share/keyrings/haproxy.debian.net.gpg] http://haproxy.debian.net bookworm-backports-2.6 main\n' > /etc/apt/sources.list.d/haproxy.list
+		printf 'deb [signed-by=/usr/share/keyrings/haproxy.debian.net.gpg] http://haproxy.debian.net bookworm-backports-2.8 main\n' > /etc/apt/sources.list.d/haproxy.list
 	fi ;
 else
 	printf 'ERROR: OS Not supported for HAProxy install.' ;
 	exit 1;
 fi ;
 
-sudo apt-get update 2>&1> /dev/null && sudo apt-get -yqq install haproxy=2.6.\* 2>&1> /dev/null ;
+sudo apt-get update 2>&1> /dev/null && sudo apt-get -yqq install haproxy=2.8.\* 2>&1> /dev/null ;
 if (($? == 0)) ; then printf 'INSTALLED: Haproxy 2.6\n' ; fi ;
 
 if [[ ! ${VHOSTNAME+x} ]]; then VHOSTNAME='vault' ; fi ;  # // variables to pass in.

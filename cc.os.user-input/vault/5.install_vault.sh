@@ -350,12 +350,20 @@ function sudoSetup()
 
 				# // determine key & crt file based on current path & first returned file.
 				for sFILE in $(pwd)/${TLS_CRT_KEY_FILES} ; do
-					if [[ ${sFILE} == *".crt" ]] ; then VAULT_CONF_TLS_CERT_FILE="	tls_cert_file = \"${sFILE}\"" ; fi ;
-					if [[ ${sFILE} == *".key" ]] ; then VAULT_CONF_TLS_KEY_FILE="	tls_key_file = \"${sFILE}\"" ; chown ${USER_VAULT} ${sFILE} ; fi ;
+					if [[ ${sFILE} == *".crt" ]] ; then
+						sFILE2=${PATH_VAULT}/vault_certificate.crt ;
+						cp ${sFILE} ${sFILE2} ;
+						VAULT_CONF_TLS_CERT_FILE="	tls_cert_file = \"${sFILE2}\"" ;
+					fi ;
+					if [[ ${sFILE} == *".key" ]] ; then
+						sFILE2=${PATH_VAULT}/vault_private.key ;
+						cp ${sFILE} ${sFILE2} ;
+						VAULT_CONF_TLS_KEY_FILE="	tls_key_file = \"${sFILE2}\"" ;  # chown ${USER_VAULT} ${sFILE} ;
+					fi ;
+
 					if [[ ${VAULT_CONF_TLS_CERT_FILE} != "" && ${VAULT_CONF_TLS_KEY_FILE} != "" ]] ; then
 						VAULT_CONF_TLS_DISABLED='''	# tls_disable      = true
-	tls_prefer_server_cipher_suites = "true"
-	tls_cipher_suites = "TLS_CHACHA20_POLY1305_SHA256,TLS_RSA_WITH_AES_256_GCM_SHA384,TLS_AES_256_GCM_SHA384,TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,TLS_RSA_WITH_AES_128_GCM_SHA256,TLS_AES_128_GCM_SHA256,TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256"''' ;
+	tls_cipher_suites = "TLS_CHACHA20_POLY1305_SHA256,TLS_AES_256_GCM_SHA384,TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,TLS_AES_128_GCM_SHA256,TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256"''' ;
 						break ;
 					fi ;
 				done ;
@@ -367,8 +375,7 @@ function sudoSetup()
 				fi ;
 			elif [[ ${VAULT_CONF_TLS_CERT_FILE} != "" && ${VAULT_CONF_TLS_KEY_FILE} != "" ]] ; then
 					VAULT_CONF_TLS_DISABLED='''	# tls_disable      = true
-	tls_prefer_server_cipher_suites = "true"
-	tls_cipher_suites = "TLS_CHACHA20_POLY1305_SHA256,TLS_RSA_WITH_AES_256_GCM_SHA384,TLS_AES_256_GCM_SHA384,TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,TLS_RSA_WITH_AES_128_GCM_SHA256,TLS_AES_128_GCM_SHA256,TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256"''' ;
+	tls_cipher_suites = "TLS_CHACHA20_POLY1305_SHA256,TLS_AES_256_GCM_SHA384,TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,TLS_AES_128_GCM_SHA256,TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256"''' ;
 			fi ;
 
 			PROTO='http' ;
@@ -389,7 +396,7 @@ function sudoSetup()
 				VVERSION2=$(echo ${VVERSION} | cut -d'v' -f2 | cut -d' ' -f1) ;
 				VVERSION2=${VVERSION2:0:3} ;  # // take only major portion of version
 			fi ;
-			if [[ ${VVERSION} == *"ent" || ${VVERSION} == *"ent.hsm"* ]] && [[ -s ${LICENSE_FILE} ]] && \
+			if [[ ${VVERSION} == *"ent"* || ${VVERSION} == *"ent.hsm"* ]] && [[ -s ${LICENSE_FILE} ]] && \
 				[[ (( ${#VVERSION2} == 4 )) && "1" == $(bc <<<"1.10 <= $VVERSION2") ]] || \
 				[[ "1" == $(bc <<<"a = 1.8 <= ${VVERSION2}") ]] ; then
 				cp ${LICENSE_FILE} ${PATH_VAULT}/. ;
@@ -458,12 +465,12 @@ raw_storage_endpoint = true
 
 	if ! [[ -s ${SYSD_FILE} ]] && [[ ${SETUP,,} == *'server'* ]]; then
 		# // common Vault version systemd unit file
-		UNIT_SYSTEMD='[Unit]\nDescription="HashiCorp Vault - A tool for managing secrets"\nDocumentation=https://www.vaultproject.io/docs/\nRequires=network-online.target\nAfter=network-online.target\nConditionFileNotEmpty=/etc/vault.d/vault.hcl\nStartLimitIntervalSec=60\nStartLimitBurst=3\n\n[Service]\nEnvironment="VAULT_ENABLE_SEAL_HA_BETA=true"\nUser=vault\nGroup=vault\nProtectSystem=full\nProtectHome=read-only\nPrivateTmp=yes\nPrivateDevices=yes\nSecureBits=keep-caps\nAmbientCapabilities=CAP_IPC_LOCK\nCapabilities=CAP_IPC_LOCK+ep\nCapabilityBoundingSet=CAP_SYSLOG CAP_IPC_LOCK\nNoNewPrivileges=yes\nExecStart=/usr/local/bin/vault server -config=/etc/vault.d/vault.hcl\nExecReload=/bin/kill --signal HUP $MAINPID\nKillMode=process\nKillSignal=SIGINT\nRestart=on-failure\nRestartSec=5\nTimeoutStopSec=30\nStartLimitInterval=60\nStartLimitIntervalSec=60\nStartLimitBurst=3\nLimitNOFILE=65536\nLimitMEMLOCK=infinity\n\n[Install]\nWantedBy=multi-user.target\n' ;
+		UNIT_SYSTEMD='[Unit]\nDescription="HashiCorp Vault - A tool for managing secrets"\nDocumentation=https://www.vaultproject.io/docs/\nRequires=network-online.target\nAfter=network-online.target\nConditionFileNotEmpty=/etc/vault.d/vault.hcl\nStartLimitBurst=3\n\n[Service]\nEnvironment="VAULT_ENABLE_SEAL_HA_BETA=true"\nUser=vault\nGroup=vault\nProtectSystem=full\nProtectHome=read-only\nPrivateTmp=yes\nPrivateDevices=yes\nSecureBits=keep-caps\nAmbientCapabilities=CAP_IPC_LOCK\nCapabilityBoundingSet=CAP_SYSLOG CAP_IPC_LOCK\nNoNewPrivileges=yes\nExecStart=/usr/local/bin/vault server -config=/etc/vault.d/vault.hcl\nExecReload=/bin/kill --signal HUP $MAINPID\nKillMode=process\nKillSignal=SIGINT\nRestart=on-failure\nRestartSec=5\nTimeoutStopSec=30\nStartLimitInterval=60\nStartLimitBurst=3\nLimitNOFILE=65536\nLimitMEMLOCK=infinity\n\n[Install]\nWantedBy=multi-user.target\n' ;
 
 		# // Vault hsm / pkcs11 verison:
 		VVERSION=$(vault --version) ;
 		if [[ ${VVERSION} == *"ent.hsm"* ]] ; then
-			UNIT_SYSTEMD='[Unit]\nDescription="HashiCorp Vault - A tool for managing secrets"\nDocumentation=https://www.vaultproject.io/docs/\nRequires=network-online.target\nAfter=network-online.target\nConditionFileNotEmpty=/etc/vault.d/vault.hcl\nStartLimitIntervalSec=60\nStartLimitBurst=3\n\n[Service]\nEnvironment="VAULT_ENABLE_SEAL_HA_BETA=true"\nUser=vault\nGroup=vault\nProtectSystem=full\nProtectHome=read-only\nPrivateTmp=yes\nPrivateDevices=yes\nSecureBits=keep-caps\nAmbientCapabilities=CAP_IPC_LOCK\n#Capabilities=CAP_IPC_LOCK+ep\nCapabilityBoundingSet=CAP_SYSLOG CAP_IPC_LOCK\nNoNewPrivileges=yes\nExecStart=/usr/local/bin/vault server -config=/etc/vault.d/vault.hcl\nExecReload=/bin/kill --signal HUP $MAINPID\nKillMode=process\nKillSignal=SIGINT\nRestart=on-failure\nRestartSec=5\nTimeoutStopSec=30\n#StartLimitInterval=60\n#StartLimitIntervalSec=60\nStartLimitBurst=3\nLimitNOFILE=65536\nLimitMEMLOCK=infinity\n\n[Install]\nWantedBy=multi-user.target\n' ;
+			UNIT_SYSTEMD='[Unit]\nDescription="HashiCorp Vault - A tool for managing secrets"\nDocumentation=https://www.vaultproject.io/docs/\nRequires=network-online.target\nAfter=network-online.target\nConditionFileNotEmpty=/etc/vault.d/vault.hcl\nStartLimitBurst=3\n\n[Service]\nEnvironment="VAULT_ENABLE_SEAL_HA_BETA=true"\nUser=vault\nGroup=vault\nProtectSystem=full\nProtectHome=read-only\nPrivateTmp=yes\nPrivateDevices=yes\nSecureBits=keep-caps\nAmbientCapabilities=CAP_IPC_LOCK\n#Capabilities=CAP_IPC_LOCK+ep\nCapabilityBoundingSet=CAP_SYSLOG CAP_IPC_LOCK\nNoNewPrivileges=yes\nExecStart=/usr/local/bin/vault server -config=/etc/vault.d/vault.hcl\nExecReload=/bin/kill --signal HUP $MAINPID\nKillMode=process\nKillSignal=SIGINT\nRestart=on-failure\nRestartSec=5\nTimeoutStopSec=30\n#StartLimitInterval=60\n#StartLimitIntervalSec=60\nStartLimitBurst=3\nLimitNOFILE=65536\nLimitMEMLOCK=infinity\n\n[Install]\nWantedBy=multi-user.target\n' ;
 		fi ;
 
 		printf "${UNIT_SYSTEMD}" > ${SYSD_FILE} && chmod 664 ${SYSD_FILE}

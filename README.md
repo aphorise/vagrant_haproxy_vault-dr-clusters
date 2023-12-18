@@ -2,11 +2,7 @@
 
 **See: [LASTRUN.md for details of most recent tests](LASTRUN.md).**
 
-This repo is a mock example of two Vault clusters which are serviced by their respective HAProxy Load-Balancer using `X-Forward-For`.
-
-It's possible to use [Vault HSM Enterprise](https://www.vaultproject.io/docs/enterprise/hsm) with [SoftHSM](https://www.opendnssec.org/softhsm/) as an [auto-unseal type is possible](https://www.vaultproject.io/docs/configuration/seal/pkcs11) as detailed below.
-
-:memo: Past tests on **X86 / AMD64** hosts with Windows (10 & 11) & Linux (Debian 11 & macOS 12.4) using VirtualBox: 7.0.10r158379 + Vagrant 2.3.7 & earlier. :memo:
+The same as the [MAIN branch](main/README.md) - built on :apple: Apple Silicon (ARM64) and MacOS with VMWare fusion (as opposed to VirtualBox).
 
 
 ## Makeup & Concept
@@ -46,31 +42,21 @@ The hardware & software requirements needed to use this repo is listed below.
  - **CPU** **8**+ Cores Free minimum - more if with Consul.
  - **Network** interface allowing IP assignment and interconnection in VirtualBox bridged mode for all instances.
  - - adjust `sNET='en0: Wi-Fi (Wireless)'` in **`Vagrantfile`** to match your system.
- - [**Virtualbox**](https://www.virtualbox.org/) with [Virtualbox Guest Additions (VBox GA)](https://download.virtualbox.org/virtualbox/) correctly installed.
+ - [:apple: **macOS** (aka OSX) Fusion 13](https://www.vmware.com/products/fusion.html) for Apple Silicon (M1, M2 / M3).
  - [**Vagrant**](https://www.vagrantup.com/)
- - **OPTIONAL**: :lock: An [enterprise license](https://www.hashicorp.com/products/vault/pricing/) is needed for [HSM Support](https://www.vaultproject.io/docs/enterprise/hsm) :lock:
+ - **OPTIONAL**: :lock: An [enterprise license](https://www.hashicorp.com/products/vault/pricing/) is needed [for DR / replication Support](https://www.vaultproject.io/docs/enterprise) :lock:
 
 
 ## Usage & Workflow
 Refer to the contents of **`Vagrantfile`** & ensure network IP ranges specific to your setting then `vagrant up`.
 
-To use Vault Enterprise HSM ensure that a license `vault_license.txt` is set in directory for each cluster **`vault_files_dr-primary/`** as well as **`vault_files_dr-secondary/`** and that the template is adjusted with version specifics as documented in the `Vagrantfile` - eg: `VV1='VAULT_VERSION='+'1.10.4+ent.hsm'` ***prior to performing*** `vagrant up`.
+To use Vault Enterprise ensure that a license `vault_license.txt` is set in directory for each cluster **`vault_files_dr-primary/`** as well as **`vault_files_dr-secondary/`** and that the template is adjusted with version specifics as documented in the `Vagrantfile` - eg: `VV1='VAULT_VERSION='+'1.10.4+ent'` ***prior to performing*** `vagrant up`.
 
 ```bash
-vagrant up --provider virtualbox ;
+vagrant up --provider vmware_desktop ;
 # // ... output of provisioning steps.
 
 vagrant global-status ; # should show running nodes
-  # id       name        provider   state   directory
-  # -------------------------------------------------------------------------------------
-  # 6127f10  dr1primary-haproxy   virtualbox running /home/auser/hashicorp.vagrant_haproxy_vault-dr-clusters
-  # c389198  dr1primary-vault1    virtualbox running /home/auser/hashicorp.vagrant_haproxy_vault-dr-clusters
-  # 7d3bb3a  dr1primary-vault2    virtualbox running /home/auser/hashicorp.vagrant_haproxy_vault-dr-clusters
-  # 893d929  dr1primary-vault3    virtualbox running /home/auser/hashicorp.vagrant_haproxy_vault-dr-clusters
-  # 82f6a8b  dr2secondary-haproxy virtualbox running /home/auser/hashicorp.vagrant_haproxy_vault-dr-clusters
-  # 200a2a4  dr2secondary-vault1  virtualbox running /home/auser/hashicorp.vagrant_haproxy_vault-dr-clusters
-  # 8259c6d  dr2secondary-vault2  virtualbox running /home/auser/hashicorp.vagrant_haproxy_vault-dr-clusters
-  # 28261c9  dr2secondary-vault3  virtualbox running /home/auser/hashicorp.vagrant_haproxy_vault-dr-clusters
 
 vagrant ssh dr1primary-vault1
   # ...
@@ -96,7 +82,7 @@ exit ;
 # // ---------------------------------------------------------------------------
 # when completely done:
 vagrant destroy -f ;
-vagrant box remove -f debian/bullseye64 --provider virtualbox ; # ... delete box images
+vagrant box remove -f aphorise/debian12-arm64 --provider vmware_desktop ; # ... delete box images
 ```
 
 ## Notes

@@ -2,6 +2,10 @@
 set -eu ; # abort this script when a command fails or an unset variable is used.
 #set -x ; # echo all the executed commands
 
+# // Needed for VMWare time-sync mislaigment between hosts
+# // Error checking seal status: Get "https://172.16.17.162:8200/v1/sys/seal-status": tls: failed to verify certificate: x509: certificate has expired or is not yet valid: current time 2023-12-11T10:45:43Z is before 2023-12-11T11:45:10Z
+date -Ins -s $(date -Ins -d '-2 hour') 2>&1> /dev/null
+
 # // OpenSSL Configuration & paths
 OPENSSL_PATH=$(openssl version -a | grep OPENSSLDIR | grep -oP '"\K[^"\047]+(?=["\047])') ; # // get directory path
 OPENSSL_CONF="${OPENSSL_PATH}/openssl.cnf" ;
@@ -373,3 +377,5 @@ rm -rf *.csr ;
 
 # // REGENERATE SERVICE READY KEY with no pass prompts
 # openssl rsa -in ${VAULT_FILE_KEY} -out unsecured.${VAULT_FILE_KEY}
+
+date -Ins -s $(date -Ins -d '+2 hour') 2>&1> /dev/null
