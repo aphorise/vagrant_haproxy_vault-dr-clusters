@@ -1,5 +1,7 @@
 # HashiCorp `vagrant` demo of HAProxy with **`vault`** DR-Primary & DR-Secondary clusters
 
+**:green_apple: :apple: [For ARM64 versions for Apple Silicon & using VMWare Fusion see /arm64 branch](https://github.com/aphorise/vagrant_haproxy_vault-dr-clusters/tree/arm64) :apple: :green_apple:**
+
 **See: [LASTRUN.md for details of most recent tests](LASTRUN.md).**
 
 This repo is a mock example of two Vault clusters which are serviced by their respective HAProxy Load-Balancer using `X-Forward-For`.
