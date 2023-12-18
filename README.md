@@ -2,7 +2,7 @@
 
 **See: [LASTRUN.md for details of most recent tests](LASTRUN.md).**
 
-The same as the [MAIN branch](main/README.md) - built on :apple: Apple Silicon (ARM64) and MacOS with VMWare fusion (as opposed to VirtualBox).
+The same as the [MAIN branch](https://github.com/aphorise/vagrant_haproxy_vault-dr-clusters/tree/main) - built on :apple: Apple Silicon (ARM64) and MacOS with VMWare fusion (as opposed to VirtualBox).
 
 
 ## Makeup & Concept
