@@ -357,6 +357,7 @@ else
 fi ;
 
 chown -R ${LOGNAME} . ;
+chmod +x /home/vagrant
 
 # // DELETE CSR
 rm -rf *.csr ;

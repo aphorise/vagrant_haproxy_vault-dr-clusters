@@ -98,7 +98,7 @@ exit ;
 # // ---------------------------------------------------------------------------
 # when completely done:
 vagrant destroy -f ;
-vagrant box remove -f debian/bullseye64 --provider virtualbox ; # ... delete box images
+vagrant box remove -f aphorise/debian12 --provider virtualbox ; # ... delete box images
 ```
 
 ## Notes
