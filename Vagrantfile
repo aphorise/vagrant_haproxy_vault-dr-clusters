@@ -83,7 +83,7 @@ Vagrant.configure("2") do |config|
 	config.vm.post_up_message = ""
 	config.vm.box = "aphorise/debian12-arm64"
 	config.vm.box_check_update = false  # // disabled to reduce verbosity - better enabled
-	config.vm.box_version = "0.0.3"  # // Debian tested version.
+	config.vm.box_version = "0.0.4"  # // Debian tested version.
 
 	config.vm.provider "vmware_desktop" do |v|
 		v.vmx["memsize"] = "2048"
